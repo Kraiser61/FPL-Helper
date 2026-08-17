@@ -169,5 +169,6 @@ $$\max \sum_{t=1}^{T} \left( \sum_{i \in \text{Start}} \text{xP}_{i,t} + \text{x
 
 ---
 
-## 📄 Lisans
-Bu proje açık kaynaklı olup [MIT Lisansı](LICENSE) altında dağıtılmaktadır.
+## 📄 Lisans & Telif
+Bu proje kişisel strateji ve analiz amacıyla geliştirilmiştir. Tüm hakları saklıdır.
+
