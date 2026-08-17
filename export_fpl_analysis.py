@@ -504,6 +504,11 @@ def format_telegram_report(payload: dict) -> str:
     chips = payload.get("chip_strategy", {})
     health = payload.get("squad_health", [])
 
+    def get_pname(p):
+        if not p or not isinstance(p, dict):
+            return ""
+        return str(p.get("name") or p.get("web_name") or p.get("id") or "")
+
     lines = []
     lines.append(f"🦁 <b>FPL STRATEJİ RAPORU (GW{gw})</b>")
     lines.append(f"<i>Yapay Zeka & Poisson-Elo Projeksiyon Çözümü</i>\n")
@@ -511,8 +516,8 @@ def format_telegram_report(payload: dict) -> str:
     # 1. Kaptan & 2. Kaptan
     cap = lineup.get("captain", {})
     vc = lineup.get("vice_captain", {})
-    cap_name = cap.get("web_name", "Belirlenmedi") if cap else "-"
-    vc_name = vc.get("web_name", "Belirlenmedi") if vc else "-"
+    cap_name = get_pname(cap) or "Belirlenmedi"
+    vc_name = get_pname(vc) or "Belirlenmedi"
     lines.append(f"👑 <b>Kaptan:</b> {cap_name}")
     lines.append(f"🥈 <b>2. Kaptan:</b> {vc_name}\n")
 
@@ -522,14 +527,14 @@ def format_telegram_report(payload: dict) -> str:
         lines.append("🎯 <b>Transfer:</b> 🛡️ Transferi Pas Geç (Roll FT)")
         lines.append(f"   <i>Tavsiye: Gelecek hafta için 2 FT biriktir.</i>\n")
     elif t_type == "single_transfer":
-        tin = action.get("transfers_in", [{}])[0].get("web_name", "?")
-        tout = action.get("transfers_out", [{}])[0].get("web_name", "?")
+        tin = get_pname(action.get("transfers_in", [{}])[0])
+        tout = get_pname(action.get("transfers_out", [{}])[0])
         gain = action.get("net_xp_gain", 0.0)
         lines.append(f"🎯 <b>Transfer:</b> 🔴 {tout} ➔ 🟢 {tin}")
         lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
     elif t_type == "double_transfer":
-        tins = ", ".join([p.get("web_name", "?") for p in action.get("transfers_in", [])])
-        touts = ", ".join([p.get("web_name", "?") for p in action.get("transfers_out", [])])
+        tins = ", ".join([get_pname(p) for p in action.get("transfers_in", []) if get_pname(p)])
+        touts = ", ".join([get_pname(p) for p in action.get("transfers_out", []) if get_pname(p)])
         gain = action.get("net_xp_gain", 0.0)
         lines.append(f"🎯 <b>Çift Transfer:</b> 🔴 {touts} ➔ 🟢 {tins}")
         lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
@@ -540,17 +545,17 @@ def format_telegram_report(payload: dict) -> str:
     lines.append(f"📋 <b>İdeal 11 ({formation}) - Toplam xP: {total_xp}:</b>")
     starters = lineup.get("starters", [])
     
-    gkps = [p.get("web_name") for p in starters if p.get("element_type") == 1]
-    defs = [p.get("web_name") for p in starters if p.get("element_type") == 2]
-    mids = [p.get("web_name") for p in starters if p.get("element_type") == 3]
-    fwds = [p.get("web_name") for p in starters if p.get("element_type") == 4]
+    gkps = [get_pname(p) for p in starters if (p.get("element_type") == 1 or p.get("pos") in ("GKP", "GK")) and get_pname(p)]
+    defs = [get_pname(p) for p in starters if (p.get("element_type") == 2 or p.get("pos") in ("DEF",)) and get_pname(p)]
+    mids = [get_pname(p) for p in starters if (p.get("element_type") == 3 or p.get("pos") in ("MID",)) and get_pname(p)]
+    fwds = [get_pname(p) for p in starters if (p.get("element_type") == 4 or p.get("pos") in ("FWD",)) and get_pname(p)]
     
     if gkps: lines.append(f"🧤 <b>KL:</b> {', '.join(gkps)}")
     if defs: lines.append(f"🛡️ <b>DF:</b> {', '.join(defs)}")
     if mids: lines.append(f"⚙️ <b>OS:</b> {', '.join(mids)}")
     if fwds: lines.append(f"⚡ <b>FV:</b> {', '.join(fwds)}")
 
-    bench = [p.get("web_name") for p in lineup.get("bench", [])]
+    bench = [get_pname(p) for p in lineup.get("bench", []) if get_pname(p)]
     if bench:
         lines.append(f"🪑 <b>Yedekler:</b> {', '.join(bench)}\n")
     else:
