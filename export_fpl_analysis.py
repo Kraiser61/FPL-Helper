@@ -376,18 +376,30 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     from data.database import db_manager
     db_manager.init_db()
 
-    # Check if raw team data was passed via environment variable (from mobile workflow_dispatch)
+    auth_manager = AuthManager()
+    fpl_client = FPLClient(auth_manager=auth_manager)
+
+    # Check if raw team data was passed via environment variable (from mobile workflow_dispatch or Telegram)
     raw_team_data = os.environ.get("RAW_TEAM_DATA", "").strip()
     if raw_team_data:
         try:
             from ingestion.local_sync_server import save_synced_team_to_disk
-            parsed_team = json.loads(raw_team_data)
-            if isinstance(parsed_team, dict):
-                if "team_data" in parsed_team:
-                    save_synced_team_to_disk(parsed_team)
-                elif "picks" in parsed_team:
-                    save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_team})
-                app_logger.info("Successfully ingested live squad from workflow_dispatch RAW_TEAM_DATA.")
+            from ingestion.fpl_client import parse_raw_text_to_team_data
+            
+            if raw_team_data.startswith("{"):
+                parsed_team = json.loads(raw_team_data)
+                if isinstance(parsed_team, dict):
+                    if "team_data" in parsed_team:
+                        save_synced_team_to_disk(parsed_team)
+                    elif "picks" in parsed_team:
+                        save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_team})
+            elif len(raw_team_data) > 5 and raw_team_data not in ("/analiz", "/start", "/solve"):
+                app_logger.info(f"Processing squad text from Telegram: {raw_team_data[:60]}...")
+                bootstrap = await fpl_client.get_bootstrap_static()
+                td = parse_raw_text_to_team_data(raw_team_data, bootstrap.elements)
+                if td and td.get("picks"):
+                    save_synced_team_to_disk({"manager_id": manager_id, "team_data": td})
+                    app_logger.success(f"Successfully saved {len(td['picks'])} picks from Telegram message.")
         except Exception as e:
             app_logger.error(f"Failed to parse RAW_TEAM_DATA from environment: {e}")
 
@@ -398,8 +410,6 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     except Exception as e:
         app_logger.warning(f"FPL Review otomatik kazıma atlandı (yerleşik motor kullanılacak): {e}")
     
-    auth_manager = AuthManager()
-    fpl_client = FPLClient(auth_manager=auth_manager)
     engine = StrategyEngine(fpl_client=fpl_client, risk_profile="balanced")
 
     bundle = await engine.analyze(manager_id=manager_id, horizon_gws=horizon_gws)

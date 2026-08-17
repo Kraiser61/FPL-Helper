@@ -18,17 +18,24 @@ from utils.logger import app_logger
 def parse_raw_text_to_team_data(raw_text: str, elements: list) -> dict:
     import re
     from fuzzywuzzy import fuzz
-    lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+
+    clean_raw = raw_text.strip()
+    if clean_raw.lower().startswith("/kadro"):
+        clean_raw = clean_raw[6:].strip()
+
+    tokens = re.split(r'[\n\r,;]+', clean_raw)
+    tokens = [t.strip() for t in tokens if t.strip()]
+
     found_players = []
     found_ids = set()
     pos_limits = {1: 2, 2: 5, 3: 5, 4: 3}
     pos_counts = {1: 0, 2: 0, 3: 0, 4: 0}
 
     # Pass 1: exact web_name matches
-    for line in lines:
-        if len(line) < 3 or len(line) > 25:
+    for token in tokens:
+        clean = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', token).strip()
+        if not clean or len(clean) < 2:
             continue
-        clean = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', line).strip()
         for p in elements:
             if p.id in found_ids or pos_counts[p.element_type] >= pos_limits[p.element_type]:
                 continue
@@ -40,14 +47,14 @@ def parse_raw_text_to_team_data(raw_text: str, elements: list) -> dict:
 
     # Pass 2: fuzzy match
     if len(found_players) < 15:
-        for line in lines:
-            if len(line) < 3 or len(line) > 25:
+        for token in tokens:
+            clean = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', token).strip()
+            if not clean or len(clean) < 2:
                 continue
-            clean = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', line).strip()
             for p in elements:
                 if p.id in found_ids or pos_counts[p.element_type] >= pos_limits[p.element_type]:
                     continue
-                if fuzz.token_sort_ratio(clean.lower(), p.web_name.lower()) >= 85:
+                if fuzz.token_sort_ratio(clean.lower(), p.web_name.lower()) >= 80:
                     found_players.append(p)
                     found_ids.add(p.id)
                     pos_counts[p.element_type] += 1
