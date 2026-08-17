@@ -15,6 +15,20 @@ from ingestion.fpl_client import FPLClient
 from ingestion.auth_manager import AuthManager
 from utils.logger import app_logger
 
+POS_NAMES = {1: "GKP", 2: "DEF", 3: "MID", 4: "FWD"}
+TEAM_NAMES = {
+    1: "ARS", 2: "AVL", 3: "BOU", 4: "BRE", 5: "BHA",
+    6: "CHE", 7: "CRY", 8: "EVE", 9: "FUL", 10: "IPS",
+    11: "LEI", 12: "LIV", 13: "MCI", 14: "MUN", 15: "NEW",
+    16: "NFO", 17: "SOU", 18: "TOT", 19: "WHU", 20: "WOL"
+}
+
+def p_pos(p: PlayerAnalysis) -> str:
+    return POS_NAMES.get(p.element_type, "MID") if p else "MID"
+
+def p_team(p: PlayerAnalysis) -> str:
+    return TEAM_NAMES.get(p.team_id, "FPL") if p else "FPL"
+
 def serialize_player(p: PlayerAnalysis) -> dict:
     if not p:
         return {}
@@ -22,7 +36,9 @@ def serialize_player(p: PlayerAnalysis) -> dict:
         "id": p.player_id,
         "name": p.web_name,
         "element_type": p.element_type,
+        "pos": p_pos(p),
         "team_id": p.team_id,
+        "team": p_team(p),
         "cost": p.now_cost / 10.0,
         "xp_next_gw": round(p.xp_next_gw, 2),
         "form": p.w_form,
@@ -33,68 +49,173 @@ def serialize_player(p: PlayerAnalysis) -> dict:
         "boom_index": round(p.boom_index, 1),
     }
 
-def format_summary_text(bundle: DecisionBundle, manager_id: int) -> str:
-    """Creates a beautifully formatted text report ideal for iPhone 13 mini display."""
+def format_card_transfer(bundle: DecisionBundle) -> str:
     lines = []
-    lines.append(f"⚽ FPL STRATEJİ RAPORU (GW{bundle.current_gw})")
-    lines.append(f"🕒 {bundle.generated_at}")
-    lines.append("─────────────────────────")
-    
-    # 1. Primary Action
+    lines.append("╔══════════════════════════════════════╗")
+    lines.append(f"║     🎯 HAFTALIK TRANSFER HAMLESİ     ║")
+    lines.append("╚══════════════════════════════════════╝")
+    lines.append(f"📅 Gameweek: GW{bundle.current_gw}  │  🕒 {bundle.generated_at[:16]}")
+    lines.append(f"💰 Bütçe: £{bundle.bank_amount:.1f}m   │  🔄 Hak: {bundle.available_transfers_str}")
+    lines.append("────────────────────────────────────────")
+
     action = bundle.primary_action
     action_type = action.get("type", "roll_ft")
+
     if action_type == "transfer" and action.get("transfers_in") and action.get("transfers_out"):
-        p_in = action["transfers_in"][0].web_name if hasattr(action["transfers_in"][0], "web_name") else str(action["transfers_in"][0])
-        p_out = action["transfers_out"][0].web_name if hasattr(action["transfers_out"][0], "web_name") else str(action["transfers_out"][0])
-        lines.append("🎯 BU HAFTAKİ HAMLE:")
-        lines.append(f"  ❌ ÇIK: {p_out}")
-        lines.append(f"  ✅ AL : {p_in}")
-        lines.append(f"  📈 Net Beklenti: +{action.get('net_xp_gain', 0.0):.1f} xP")
+        p_in = action["transfers_in"][0]
+        p_out = action["transfers_out"][0]
+        in_name = p_in.web_name if hasattr(p_in, "web_name") else str(p_in)
+        out_name = p_out.web_name if hasattr(p_out, "web_name") else str(p_out)
+        in_cost = (p_in.now_cost / 10.0) if hasattr(p_in, "now_cost") else 0.0
+        out_cost = (p_out.now_cost / 10.0) if hasattr(p_out, "now_cost") else 0.0
+        in_team = p_team(p_in) if hasattr(p_in, "team_id") else ""
+        out_team = p_team(p_out) if hasattr(p_out, "team_id") else ""
+
+        lines.append("🔄 ÖNERİLEN HAMLE:")
+        lines.append(f"  ❌ ÇIKAN : {out_name} ({out_team} - £{out_cost:.1f}m)")
+        lines.append(f"  ✅ GİREN : {in_name} ({in_team} - £{in_cost:.1f}m)")
+        lines.append("")
+        lines.append("📊 HESAPLANAN VERİLER:")
+        lines.append(f"  ├─ Net Puan Artışı : +{action.get('net_xp_gain', 0.0):.1f} xP")
+        lines.append(f"  ├─ Kalan Kasa (£)  : £{action.get('budget_remaining', 0.0):.1f}m")
+        lines.append(f"  └─ Ceza Puanı      : {action.get('hit_cost', 0)} Puan")
+        lines.append("")
+        lines.append("💡 STRATEJİK GEREKÇE:")
+        for r in action.get("reasons", []):
+            clean_r = r.replace("<b>", "").replace("</b>", "")
+            lines.append(f"  • {clean_r}")
     else:
-        lines.append("🎯 BU HAFTAKİ HAMLE:")
-        lines.append("  🛡️ Transfer Yapma (Roll FT)")
-        lines.append(f"  💡 Haftaya {bundle.free_transfers_count + 1 if bundle.free_transfers_count < 5 else 5} FT esnekliği kalacak.")
+        lines.append("🛡️ ÖNERİLEN HAMLE: TRANSFER YAPMA (ROLL FT)")
+        lines.append("")
+        lines.append("📊 GEREKÇE:")
+        lines.append("  • Mevcut ilk 11'inizin puan potansiyeli bu hafta için dengeli.")
+        lines.append("  • Acil transfer gerektiren kritik bir sakatlık bulunmuyor.")
+        lines.append(f"  • Transfer hakkını saklayarak sonraki haftaya çoklu transfer esnekliğiyle girmeniz matematiksel olarak daha yüksek değer üretiyor.")
 
-    lines.append(f"  💰 Kalan Bütçe: £{bundle.bank_amount:.1f}m | FT: {bundle.available_transfers_str}")
-    lines.append("─────────────────────────")
+    return "\n".join(lines)
 
-    # 2. Lineup & Captains
+def format_card_lineup(bundle: DecisionBundle) -> str:
+    lines = []
     lineup = bundle.lineup_summary
     cap = lineup.get("captain")
     vcap = lineup.get("vice_captain")
-    cap_name = cap.web_name if hasattr(cap, "web_name") else (cap.get("name", "N/A") if isinstance(cap, dict) else "N/A")
-    cap_xp = cap.xp_next_gw if hasattr(cap, "xp_next_gw") else (cap.get("xp_next_gw", 0.0) if isinstance(cap, dict) else 0.0)
-    vcap_name = vcap.web_name if hasattr(vcap, "web_name") else (vcap.get("name", "N/A") if isinstance(vcap, dict) else "N/A")
-    vcap_xp = vcap.xp_next_gw if hasattr(vcap, "xp_next_gw") else (vcap.get("xp_next_gw", 0.0) if isinstance(vcap, dict) else 0.0)
+    starters = lineup.get("starters", [])
+    bench = lineup.get("bench", [])
 
-    lines.append("👑 KAPTAN TERCİHLERİ:")
-    lines.append(f"  (C)  {cap_name} ({cap_xp:.1f} xP)")
-    lines.append(f"  (VC) {vcap_name} ({vcap_xp:.1f} xP)")
-    lines.append(f"  📋 Diziliş: {lineup.get('formation', '3-5-2')}")
-    lines.append("─────────────────────────")
+    lines.append("╔══════════════════════════════════════╗")
+    lines.append("║        👑 KAPTAN TERCİHLERİ          ║")
+    lines.append("╚══════════════════════════════════════╝")
+    if cap:
+        c_name = cap.web_name if hasattr(cap, "web_name") else cap.get("name", "N/A")
+        c_xp = cap.xp_next_gw if hasattr(cap, "xp_next_gw") else cap.get("xp_next_gw", 0.0)
+        c_team = p_team(cap) if hasattr(cap, "team_id") else ""
+        c_own = cap.ownership if hasattr(cap, "ownership") else 0.0
+        lines.append(f"👑 (C)  {c_name} ({c_team})  │ {c_xp * 2:.1f} xP (2x) │ %{c_own:.1f} Sahip")
+    if vcap:
+        vc_name = vcap.web_name if hasattr(vcap, "web_name") else vcap.get("name", "N/A")
+        vc_xp = vcap.xp_next_gw if hasattr(vcap, "xp_next_gw") else vcap.get("xp_next_gw", 0.0)
+        vc_team = p_team(vcap) if hasattr(vcap, "team_id") else ""
+        lines.append(f"🥈 (VC) {vc_name} ({vc_team}) │ {vc_xp:.1f} xP      │ Güvenli Yedek")
 
-    # 3. Golden Path (Next 4 Gameweeks)
-    lines.append("🛣️ ÇOK HAFTALIK YOL HARİTASI:")
-    for step in bundle.golden_path[:4]:
-        gw_num = step.get("gw")
-        act = step.get("action", "")
-        # Clean icons for concise phone view
-        lines.append(f"  GW{gw_num}: {act}")
-    lines.append("─────────────────────────")
+    lines.append("")
+    lines.append("╔══════════════════════════════════════╗")
+    lines.append(f"║       📋 SAHAYA ÇIKACAK İLK 11       ║")
+    lines.append(f"║           (Diziliş: {lineup.get('formation', '3-5-2')})            ║")
+    lines.append("╚══════════════════════════════════════╝")
 
-    # 4. Chip & Timing Advice
-    lines.append("🃏 ÇİP & ZAMANLAMA STRATEJİSİ:")
-    lines.append(f"  {bundle.chip_advice}")
-    lines.append(f"  {bundle.timing_advice}")
+    # Group starters
+    gkps = [p for p in starters if (p.element_type if hasattr(p, "element_type") else p.get("element_type")) == 1]
+    defs = [p for p in starters if (p.element_type if hasattr(p, "element_type") else p.get("element_type")) == 2]
+    mids = [p for p in starters if (p.element_type if hasattr(p, "element_type") else p.get("element_type")) == 3]
+    fwds = [p for p in starters if (p.element_type if hasattr(p, "element_type") else p.get("element_type")) == 4]
 
-    # 5. Health alerts if any
-    if bundle.squad_health_issues:
-        lines.append("─────────────────────────")
-        lines.append("⚠️ SAKATLIK / ŞÜPHE UYARISI:")
-        for h in bundle.squad_health_issues[:3]:
-            lines.append(f"  • {h.get('web_name')}: %{h.get('chance', 0)} ({h.get('news', '')})")
+    def _fmt(p_list, title, emoji):
+        lines.append(f"{emoji} {title}")
+        for idx, p in enumerate(p_list):
+            p_name = p.web_name if hasattr(p, "web_name") else p.get("name", "")
+            p_tm = p_team(p) if hasattr(p, "team_id") else p.get("team", "")
+            p_x = p.xp_next_gw if hasattr(p, "xp_next_gw") else p.get("xp_next_gw", 0.0)
+            prefix = "└─" if idx == len(p_list) - 1 else "├─"
+            lines.append(f"  {prefix} {p_name:<12} ({p_tm:<3}) ──► {p_x:.1f} xP")
+
+    _fmt(gkps, "KALECİ", "🧤")
+    _fmt(defs, "DEFANS", "🛡️")
+    _fmt(mids, "ORTA SAHA", "⚙️")
+    _fmt(fwds, "FORVET", "⚡")
+
+    if bench:
+        lines.append("")
+        lines.append("────────────────────────────────────────")
+        lines.append("🪑 YEDEK KULÜBESİ (Sıralama):")
+        for idx, p in enumerate(bench):
+            p_name = p.web_name if hasattr(p, "web_name") else p.get("name", "")
+            p_tm = p_team(p) if hasattr(p, "team_id") else p.get("team", "")
+            p_x = p.xp_next_gw if hasattr(p, "xp_next_gw") else p.get("xp_next_gw", 0.0)
+            lines.append(f"  {idx + 1}. {p_name:<12} ({p_tm:<3}) ──► {p_x:.1f} xP")
 
     return "\n".join(lines)
+
+def format_card_golden_path(bundle: DecisionBundle) -> str:
+    lines = []
+    lines.append("╔══════════════════════════════════════╗")
+    lines.append("║     🛣️ STRATEJİK YOL HARİTASI        ║")
+    lines.append("║        (Çok Haftalık Plan)           ║")
+    lines.append("╚══════════════════════════════════════╝")
+    for step in bundle.golden_path[:6]:
+        gw_num = step.get("gw")
+        act = step.get("action", "")
+        target = step.get("target", "")
+        lines.append(f"GW{gw_num:<2} │ {act}")
+        if target:
+            lines.append(f"     │ ↳ {target}")
+        lines.append("─────┼──────────────────────────────────")
+    return "\n".join(lines)
+
+def format_card_chips(bundle: DecisionBundle) -> str:
+    lines = []
+    lines.append("╔══════════════════════════════════════╗")
+    lines.append("║      🃏 ÇİP & ZAMANLAMA REHBERİ      ║")
+    lines.append("╚══════════════════════════════════════╝")
+    lines.append(f"📌 Çip Durumu: {bundle.chips_status_str}")
+    lines.append("")
+    lines.append("🎯 ÇİP TAVSİYESİ:")
+    lines.append(f"  {bundle.chip_advice}")
+    lines.append("")
+    lines.append("⏱️ ZAMANLAMA TAVSİYESİ:")
+    lines.append(f"  {bundle.timing_advice}")
+    return "\n".join(lines)
+
+def format_card_health_radar(bundle: DecisionBundle) -> str:
+    lines = []
+    lines.append("╔══════════════════════════════════════╗")
+    lines.append("║    🏥 SAKATLIK & FİYAT RADARI        ║")
+    lines.append("╚══════════════════════════════════════╝")
+    if bundle.squad_health_issues:
+        lines.append("⚠️ SAKATLIK / ŞÜPHELİ OYUNCULAR:")
+        for h in bundle.squad_health_issues:
+            lines.append(f"  • {h.get('web_name')}: %{h.get('chance', 0)} ({h.get('news', 'Durumu belirsiz')})")
+    else:
+        lines.append("✅ Kadroda kritik bir sakatlık veya şüphe bulunmuyor (15/15 Sağlam).")
+
+    lines.append("")
+    if bundle.price_alerts:
+        lines.append("📈 FİYAT DEĞİŞİM BEKLENTİLERİ:")
+        for a in bundle.price_alerts[:4]:
+            arrow = "🔺" if a.get("direction") == "rise" else "🔻"
+            lines.append(f"  {arrow} {a.get('web_name')}: %{int(a.get('probability', 0)*100)} İhtimal")
+    return "\n".join(lines)
+
+def format_summary_text(bundle: DecisionBundle, manager_id: int) -> str:
+    parts = [
+        format_card_transfer(bundle),
+        "",
+        format_card_lineup(bundle),
+        "",
+        format_card_golden_path(bundle),
+        "",
+        format_card_chips(bundle),
+    ]
+    return "\n".join(parts)
 
 async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_gws: int = 8, output_path: Path = None):
     app_logger.info(f"Starting headless analysis for Manager {manager_id}...")
@@ -116,6 +237,13 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             "bank": bundle.bank_amount,
             "chips_status": bundle.chips_status_str,
             "available_transfers_str": bundle.available_transfers_str,
+        },
+        "cards": {
+            "transfer": format_card_transfer(bundle),
+            "lineup": format_card_lineup(bundle),
+            "golden_path": format_card_golden_path(bundle),
+            "chips": format_card_chips(bundle),
+            "health_radar": format_card_health_radar(bundle),
         },
         "summary_text": format_summary_text(bundle, manager_id),
         "primary_action": {
@@ -177,9 +305,10 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
     app_logger.success(f"Analysis JSON successfully generated at: {output_path}")
+    return payload
+
 if __name__ == "__main__":
     if sys.stdout.encoding != 'utf-8':
         sys.stdout.reconfigure(encoding='utf-8')
     mgr_id = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_MANAGER_ID
     asyncio.run(generate_analysis_json(manager_id=mgr_id))
-
