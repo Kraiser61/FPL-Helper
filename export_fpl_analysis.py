@@ -372,6 +372,21 @@ def format_html_health_radar(bundle: DecisionBundle) -> str:
 async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_gws: int = 8, output_path: Path = None):
     app_logger.info(f"Starting headless analysis for Manager {manager_id}...")
 
+    # Check if raw team data was passed via environment variable (from mobile workflow_dispatch)
+    raw_team_data = os.environ.get("RAW_TEAM_DATA", "").strip()
+    if raw_team_data:
+        try:
+            from ingestion.local_sync_server import save_synced_team_to_disk
+            parsed_team = json.loads(raw_team_data)
+            if isinstance(parsed_team, dict):
+                if "team_data" in parsed_team:
+                    save_synced_team_to_disk(parsed_team)
+                elif "picks" in parsed_team:
+                    save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_team})
+                app_logger.info("Successfully ingested live squad from workflow_dispatch RAW_TEAM_DATA.")
+        except Exception as e:
+            app_logger.error(f"Failed to parse RAW_TEAM_DATA from environment: {e}")
+
     # Step 0: Scrape live FPL Review projections and build hybrid CSV
     try:
         from ingestion.fplreview_scraper import generate_hybrid_fplreview_csv

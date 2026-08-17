@@ -2,6 +2,11 @@ name: FPL Strategy Solver & Exporter
 
 on:
   workflow_dispatch: # Manuel tetikleme (Telefondan veya Web'den)
+    inputs:
+      team_data:
+        description: 'Raw FPL my-team JSON from mobile Safari'
+        required: false
+        default: ''
   schedule:
     # Her gün saat 05:00 ve 17:00 UTC (Türkiye saatiyle 08:00 ve 20:00)
     - cron: '0 5,17 * * *'
@@ -36,6 +41,8 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Run FPL Strategy Solver & Generate JSON
+        env:
+          RAW_TEAM_DATA: ${{ github.event.inputs.team_data }}
         run: |
           python export_fpl_analysis.py
 
@@ -43,7 +50,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/fpl_analysis.json data/fplreview.csv
+          git add data/fpl_analysis.json data/fplreview.csv data/synced_team.json
           if git diff --staged --quiet; then
             echo "Verilerde değişiklik yok. Commit atlanıyor."
           else
