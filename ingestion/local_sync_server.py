@@ -41,14 +41,17 @@ def save_synced_team_to_disk(data: Dict[str, Any]):
 
 def load_synced_team_from_disk() -> Optional[Dict[str, Any]]:
     """Loads previously synced team data from disk if available."""
-    for path in [SYNC_CACHE_PATH, LOCAL_REPO_SYNC_PATH]:
+    for path in [LOCAL_REPO_SYNC_PATH, SYNC_CACHE_PATH]:
         if os.path.exists(path):
             try:
                 with open(path, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    if data and "team_data" in data:
+                        return data
             except Exception as e:
                 app_logger.error(f"Failed to load synced team from disk at {path}: {e}")
     return None
+
 
 
 
