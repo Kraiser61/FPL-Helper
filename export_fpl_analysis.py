@@ -50,27 +50,64 @@ def serialize_player(p: PlayerAnalysis) -> dict:
         "boom_index": round(p.boom_index, 1),
     }
 
-# 1. TRANSFER CARD (Large Font + Solid Dark Table Background)
+HTML_HEADER = """<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      background-color: #070a12 !important;
+      color: #ffffff;
+      margin: 0;
+      padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      box-sizing: border-box;
+    }
+    * { box-sizing: border-box; }
+    .card {
+      background: #111827;
+      border: 3px solid #1f293d;
+      border-radius: 20px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+"""
+
+HTML_FOOTER = """
+</body>
+</html>
+"""
+
+# 1. TRANSFER CARD (3x Large Font + Edge-to-Edge OLED Dark)
 def format_html_transfer(bundle: DecisionBundle) -> str:
     action = bundle.primary_action
     action_type = action.get("type", "roll_ft")
 
-    html = []
-    html.append(f"""
-    <div style="background-color: #060911; color: #ffffff; padding: 12px; font-family: -apple-system, sans-serif;">
-      
-      <!-- MAIN HEADER CARD -->
-      <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 18px; border: 3px solid #1f293d; margin-bottom: 14px;">
-        <tr>
-          <td>
-            <div style="font-size: 34px; font-weight: 900; color: #38bdf8; letter-spacing: -0.5px;">🎯 HAFTALIK TRANSFER</div>
-            <div style="font-size: 22px; font-weight: 700; color: #94a3b8; margin-top: 6px;">
-              Gameweek: <strong style="color: #38bdf8; font-size: 24px;">GW{bundle.current_gw}</strong> │ Bütçe: <strong style="color: #4ade80; font-size: 24px;">£{bundle.bank_amount:.1f}m</strong>
-            </div>
-            <div style="font-size: 20px; font-weight: 700; color: #c084fc; margin-top: 4px;">{bundle.available_transfers_str}</div>
-          </td>
-        </tr>
-      </table>
+    body = []
+    body.append(f"""
+    <div class="card">
+      <div style="font-size: 36px; font-weight: 900; color: #38bdf8; letter-spacing: -0.5px;">🎯 HAFTALIK TRANSFER</div>
+      <div style="font-size: 22px; font-weight: 700; color: #94a3b8; margin-top: 8px;">
+        Gameweek: <strong style="color: #38bdf8; font-size: 24px;">GW{bundle.current_gw}</strong> │ Bütçe: <strong style="color: #4ade80; font-size: 24px;">£{bundle.bank_amount:.1f}m</strong>
+      </div>
+      <div style="margin-top: 10px;">
+        <span class="badge" style="background:#2e1065; color:#c084fc; border: 2px solid #7c3aed;">{bundle.available_transfers_str}</span>
+      </div>
+    </div>
     """)
 
     if action_type == "transfer" and action.get("transfers_in") and action.get("transfers_out"):
@@ -85,80 +122,57 @@ def format_html_transfer(bundle: DecisionBundle) -> str:
         in_pos = p_pos(p_in) if hasattr(p_in, "element_type") else "MID"
         out_pos = p_pos(p_out) if hasattr(p_out, "element_type") else "MID"
 
-        html.append(f"""
+        body.append(f"""
         <!-- OUT PLAYER -->
-        <table width="100%" bgcolor="#220e14" cellpadding="16" style="background-color: #220e14; border-radius: 16px; border: 3px solid #ef4444; margin-bottom: 8px;">
-          <tr>
-            <td>
-              <div style="font-size: 20px; font-weight: 900; color: #f87171; text-transform: uppercase;">❌ SATILACAK OYUNCU</div>
-              <div style="font-size: 34px; font-weight: 900; color: #ffffff; margin: 4px 0;">{out_name}</div>
-              <div style="font-size: 22px; font-weight: 700; color: #fca5a5;">{out_team} │ {out_pos} │ £{out_cost:.1f}m</div>
-            </td>
-          </tr>
-        </table>
+        <div class="card" style="background:#220e14; border: 3px solid #ef4444; border-left: 10px solid #ef4444;">
+          <div style="font-size: 20px; font-weight: 900; color: #f87171; text-transform: uppercase;">❌ SATILACAK OYUNCU</div>
+          <div style="font-size: 38px; font-weight: 900; color: #ffffff; margin: 6px 0;">{out_name}</div>
+          <div style="font-size: 24px; font-weight: 700; color: #fca5a5;">{out_team} │ {out_pos} │ £{out_cost:.1f}m</div>
+        </div>
 
         <!-- ARROW -->
-        <div style="text-align: center; font-size: 36px; font-weight: 900; color: #38bdf8; margin: 6px 0;">⬇️ ⬇️ ⬇️</div>
+        <div style="text-align: center; font-size: 40px; font-weight: 900; color: #38bdf8; margin: 8px 0;">⬇️ ⬇️ ⬇️</div>
 
         <!-- IN PLAYER -->
-        <table width="100%" bgcolor="#07271b" cellpadding="16" style="background-color: #07271b; border-radius: 16px; border: 3px solid #10b981; margin-bottom: 14px;">
-          <tr>
-            <td>
-              <div style="font-size: 20px; font-weight: 900; color: #34d399; text-transform: uppercase;">✅ ALINACAK OYUNCU</div>
-              <div style="font-size: 34px; font-weight: 900; color: #ffffff; margin: 4px 0;">{in_name}</div>
-              <div style="font-size: 22px; font-weight: 700; color: #86efac;">{in_team} │ {in_pos} │ £{in_cost:.1f}m</div>
-            </td>
-          </tr>
-        </table>
+        <div class="card" style="background:#07271b; border: 3px solid #10b981; border-left: 10px solid #10b981;">
+          <div style="font-size: 20px; font-weight: 900; color: #34d399; text-transform: uppercase;">✅ ALINACAK OYUNCU</div>
+          <div style="font-size: 38px; font-weight: 900; color: #ffffff; margin: 6px 0;">{in_name}</div>
+          <div style="font-size: 24px; font-weight: 700; color: #86efac;">{in_team} │ {in_pos} │ £{in_cost:.1f}m</div>
+        </div>
 
         <!-- STATS BLOCK -->
-        <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 16px; border: 3px solid #1f293d; margin-bottom: 14px;">
-          <tr>
-            <td>
-              <div style="font-size: 20px; font-weight: 800; color: #94a3b8;">📊 NET PUAN BEKLENTİSİ:</div>
-              <div style="font-size: 40px; font-weight: 900; color: #4ade80; margin: 4px 0;">+{action.get('net_xp_gain', 0.0):.1f} xP</div>
-              <div style="font-size: 22px; font-weight: 700; color: #e2e8f0;">Kalan Banka Bütçesi: £{action.get('budget_remaining', 0.0):.1f}m</div>
-            </td>
-          </tr>
-        </table>
+        <div class="card">
+          <div style="font-size: 22px; font-weight: 800; color: #94a3b8;">📊 NET PUAN BEKLENTİSİ:</div>
+          <div style="font-size: 48px; font-weight: 900; color: #4ade80; margin: 6px 0;">+{action.get('net_xp_gain', 0.0):.1f} xP</div>
+          <div style="font-size: 24px; font-weight: 700; color: #e2e8f0;">Kalan Banka Bütçesi: £{action.get('budget_remaining', 0.0):.1f}m</div>
+        </div>
 
         <!-- REASONS -->
-        <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 16px; border: 3px solid #1f293d;">
-          <tr>
-            <td>
-              <div style="font-size: 24px; font-weight: 900; color: #38bdf8; margin-bottom: 10px;">💡 STRATEJİK GEREKÇELER:</div>
+        <div class="card">
+          <div style="font-size: 26px; font-weight: 900; color: #38bdf8; margin-bottom: 12px;">💡 STRATEJİK GEREKÇELER:</div>
         """)
         for r in action.get("reasons", []):
-            clean_r = r.replace("<b>", "<strong style='color:#ffffff; font-size:23px;'>").replace("</b>", "</strong>")
-            html.append(f"<div style='font-size: 22px; color: #e2e8f0; margin-bottom: 10px; line-height: 1.5;'>• {clean_r}</div>")
-        html.append("</td></tr></table>")
+            clean_r = r.replace("<b>", "<strong style='color:#ffffff; font-size:25px;'>").replace("</b>", "</strong>")
+            body.append(f"<div style='font-size: 24px; color: #e2e8f0; margin-bottom: 12px; line-height: 1.5;'>• {clean_r}</div>")
+        body.append("</div>")
 
     else:
-        html.append(f"""
-        <table width="100%" bgcolor="#111827" cellpadding="18" style="background-color: #111827; border-radius: 16px; border: 3px solid #38bdf8; margin-bottom: 14px;">
-          <tr>
-            <td>
-              <div style="font-size: 20px; font-weight: 900; color: #38bdf8; text-transform: uppercase;">🛡️ STRATEJİK KARAR</div>
-              <div style="font-size: 34px; font-weight: 900; color: #ffffff; margin: 6px 0;">Transfer Yapma (Roll FT)</div>
-              <div style="font-size: 22px; color: #94a3b8; font-weight: 600;">Hakkınızı saklayarak sonraki haftaya 2 FT ile girin.</div>
-            </td>
-          </tr>
-        </table>
+        body.append(f"""
+        <div class="card" style="border: 3px solid #38bdf8; border-left: 10px solid #38bdf8;">
+          <div style="font-size: 20px; font-weight: 900; color: #38bdf8; text-transform: uppercase;">🛡️ STRATEJİK KARAR</div>
+          <div style="font-size: 38px; font-weight: 900; color: #ffffff; margin: 8px 0;">Transfer Yapma (Roll FT)</div>
+          <div style="font-size: 24px; color: #94a3b8; font-weight: 600;">Hakkınızı saklayarak sonraki haftaya 2 FT ile girin.</div>
+        </div>
 
-        <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 16px; border: 3px solid #1f293d;">
-          <tr>
-            <td>
-              <div style="font-size: 24px; font-weight: 900; color: #38bdf8; margin-bottom: 10px;">💡 STRATEJİK GEREKÇE:</div>
-              <div style="font-size: 22px; color: #e2e8f0; margin-bottom: 10px; line-height: 1.5;">• Mevcut ilk 11'inizin puan potansiyeli bu hafta için dengeli.</div>
-              <div style="font-size: 22px; color: #e2e8f0; margin-bottom: 10px; line-height: 1.5;">• Acil transfer gerektiren kritik bir sakatlık bulunmuyor.</div>
-              <div style="font-size: 22px; color: #e2e8f0; line-height: 1.5;">• Transfer hakkını saklayarak sonraki haftaya <strong style='color:#4ade80;'>2 FT esnekliğiyle</strong> girmek daha yüksek puan getirisi sağlar.</div>
-            </td>
-          </tr>
-        </table>
+        <div class="card">
+          <div style="font-size: 26px; font-weight: 900; color: #38bdf8; margin-bottom: 12px;">💡 STRATEJİK GEREKÇE:</div>
+          <div style="font-size: 24px; color: #e2e8f0; margin-bottom: 12px; line-height: 1.5;'>• Mevcut ilk 11'inizin puan potansiyeli bu hafta için dengeli.</div>
+          <div style="font-size: 24px; color: #e2e8f0; margin-bottom: 12px; line-height: 1.5;'>• Acil transfer gerektiren kritik bir sakatlık bulunmuyor.</div>
+          <div style="font-size: 24px; color: #e2e8f0; line-height: 1.5;'>• Transfer hakkını saklayarak sonraki haftaya <strong style='color:#4ade80;'>2 FT esnekliğiyle</strong> girmek daha yüksek puan getirisi sağlar.</div>
+        </div>
         """)
 
-    html.append("</div>")
-    return "".join(html)
+    return HTML_HEADER + "".join(body) + HTML_FOOTER
 
 # 2. LINEUP CARD
 def format_html_lineup(bundle: DecisionBundle) -> str:
@@ -168,15 +182,11 @@ def format_html_lineup(bundle: DecisionBundle) -> str:
     starters = lineup.get("starters", [])
     bench = lineup.get("bench", [])
 
-    html = []
-    html.append("""
-    <div style="background-color: #060911; color: #ffffff; padding: 12px; font-family: -apple-system, sans-serif;">
-      
-      <!-- CAPTAIN BLOCK -->
-      <table width="100%" bgcolor="#261a07" cellpadding="16" style="background-color: #261a07; border-radius: 18px; border: 3px solid #f59e0b; margin-bottom: 14px;">
-        <tr>
-          <td>
-            <div style="font-size: 20px; font-weight: 900; color: #fbbf24; text-transform: uppercase;">👑 KAPTAN SEÇİMİ (2x Puan)</div>
+    body = []
+    body.append(f"""
+    <!-- CAPTAIN BLOCK -->
+    <div class="card" style="background:#261a07; border: 3px solid #f59e0b; border-left: 10px solid #f59e0b;">
+      <div style="font-size: 22px; font-weight: 900; color: #fbbf24; text-transform: uppercase;">👑 KAPTAN SEÇİMİ (2x Puan)</div>
     """)
 
     if cap:
@@ -184,35 +194,29 @@ def format_html_lineup(bundle: DecisionBundle) -> str:
         c_xp = cap.xp_next_gw if hasattr(cap, "xp_next_gw") else cap.get("xp_next_gw", 0.0)
         c_team = p_team(cap) if hasattr(cap, "team_id") else ""
         c_own = cap.ownership if hasattr(cap, "ownership") else 0.0
-        html.append(f"""
-            <div style="font-size: 38px; font-weight: 900; color: #ffffff; margin: 4px 0;">{c_name} ({c_team})</div>
-            <div style="font-size: 24px; font-weight: 800; color: #fde047;">Puan Beklentisi: {c_xp * 2:.1f} xP │ %{c_own:.1f} Sahip</div>
+        body.append(f"""
+        <div style="font-size: 42px; font-weight: 900; color: #ffffff; margin: 6px 0;">{c_name} ({c_team})</div>
+        <div style="font-size: 26px; font-weight: 800; color: #fde047;">Puan Beklentisi: {c_xp * 2:.1f} xP │ %{c_own:.1f} Sahip</div>
         """)
 
     if vcap:
         vc_name = vcap.web_name if hasattr(vcap, "web_name") else vcap.get("name", "N/A")
         vc_xp = vcap.xp_next_gw if hasattr(vcap, "xp_next_gw") else vcap.get("xp_next_gw", 0.0)
         vc_team = p_team(vcap) if hasattr(vcap, "team_id") else ""
-        html.append(f"""
-            <div style="margin-top: 10px; font-size: 22px; color: #cbd5e1; font-weight: 700;">
-              🥈 2. Kaptan: <strong>{vc_name} ({vc_team})</strong> ── {vc_xp:.1f} xP
-            </div>
+        body.append(f"""
+        <div style="margin-top: 14px; font-size: 24px; color: #cbd5e1; font-weight: 700; border-top: 1px solid #452c0a; padding-top: 10px;">
+          🥈 2. Kaptan: <strong>{vc_name} ({vc_team})</strong> ── {vc_xp:.1f} xP
+        </div>
         """)
 
-    html.append(f"""
-          </td>
-        </tr>
-      </table>
+    body.append(f"""
+    </div>
 
-      <!-- SQUAD HEADER -->
-      <table width="100%" bgcolor="#111827" cellpadding="14" style="background-color: #111827; border-radius: 16px; border: 3px solid #1f293d; margin-bottom: 14px;">
-        <tr>
-          <td>
-            <span style="font-size: 30px; font-weight: 900; color: #38bdf8;">📋 İLK 11 KADROSU</span>
-            <span style="float: right; font-size: 24px; font-weight: 800; color: #c084fc;">Diziliş: {lineup.get('formation', '3-5-2')}</span>
-          </td>
-        </tr>
-      </table>
+    <!-- SQUAD HEADER -->
+    <div class="card">
+      <span style="font-size: 32px; font-weight: 900; color: #38bdf8;">📋 İLK 11 KADROSU</span>
+      <span style="float: right; font-size: 26px; font-weight: 800; color: #c084fc;">Diziliş: {lineup.get('formation', '3-5-2')}</span>
+    </div>
     """)
 
     gkps = [p for p in starters if (p.element_type if hasattr(p, "element_type") else p.get("element_type")) == 1]
@@ -221,24 +225,22 @@ def format_html_lineup(bundle: DecisionBundle) -> str:
     fwds = [p for p in starters if (p.element_type if hasattr(p, "element_type") else p.get("element_type")) == 4]
 
     def _render_pos(p_list, title, emoji, border_color):
-        html.append(f"""
-        <table width="100%" bgcolor="#111827" cellpadding="14" style="background-color: #111827; border-radius: 16px; border: 2px solid #1f293d; border-left: 8px solid {border_color}; margin-bottom: 12px;">
-          <tr>
-            <td>
-              <div style="font-size: 22px; font-weight: 900; color: {border_color}; margin-bottom: 8px;">{emoji} {title}</div>
+        body.append(f"""
+        <div class="card" style="border-left: 8px solid {border_color};">
+          <div style="font-size: 24px; font-weight: 900; color: {border_color}; margin-bottom: 10px;">{emoji} {title}</div>
         """)
         for p in p_list:
             p_name = p.web_name if hasattr(p, "web_name") else p.get("name", "")
             p_tm = p_team(p) if hasattr(p, "team_id") else p.get("team", "")
             p_x = p.xp_next_gw if hasattr(p, "xp_next_gw") else p.get("xp_next_gw", 0.0)
             p_is_cap = " 👑(C)" if cap and getattr(cap, 'player_id', None) == getattr(p, 'player_id', None) else ""
-            html.append(f"""
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1f293d;">
-                <span style="font-size: 24px; font-weight: 800; color: #ffffff;">{p_name}{p_is_cap} <small style="color:#94a3b8; font-size:18px;">({p_tm})</small></span>
-                <span style="font-size: 24px; font-weight: 900; color: #38bdf8;">{p_x:.1f} xP</span>
-              </div>
+            body.append(f"""
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1f293d;">
+              <span style="font-size: 26px; font-weight: 800; color: #ffffff;">{p_name}{p_is_cap} <small style="color:#94a3b8; font-size:20px;">({p_tm})</small></span>
+              <span style="font-size: 26px; font-weight: 900; color: #38bdf8;">{p_x:.1f} xP</span>
+            </div>
             """)
-        html.append("</td></tr></table>")
+        body.append("</div>")
 
     _render_pos(gkps, "KALECİ", "🧤", "#f59e0b")
     _render_pos(defs, "DEFANS", "🛡️", "#3b82f6")
@@ -246,160 +248,116 @@ def format_html_lineup(bundle: DecisionBundle) -> str:
     _render_pos(fwds, "FORVET", "⚡", "#a855f7")
 
     if bench:
-        html.append("""
-        <table width="100%" bgcolor="#0a0f1d" cellpadding="14" style="background-color: #0a0f1d; border-radius: 16px; border: 2px solid #1f293d; margin-top: 14px;">
-          <tr>
-            <td>
-              <div style="font-size: 22px; font-weight: 900; color: #94a3b8; margin-bottom: 8px;">🪑 YEDEK KULÜBESİ</div>
+        body.append("""
+        <div class="card" style="background:#0a0f1d;">
+          <div style="font-size: 24px; font-weight: 900; color: #94a3b8; margin-bottom: 10px;">🪑 YEDEK KULÜBESİ</div>
         """)
         for idx, p in enumerate(bench):
             p_name = p.web_name if hasattr(p, "web_name") else p.get("name", "")
             p_tm = p_team(p) if hasattr(p, "team_id") else p.get("team", "")
             p_x = p.xp_next_gw if hasattr(p, "xp_next_gw") else p.get("xp_next_gw", 0.0)
-            html.append(f"""
-              <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 20px;">
-                <span style="color: #cbd5e1; font-weight: 700;">{idx+1}. {p_name} ({p_tm})</span>
-                <span style="color: #94a3b8; font-weight: 800;">{p_x:.1f} xP</span>
-              </div>
+            body.append(f"""
+            <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 22px;">
+              <span style="color: #cbd5e1; font-weight: 700;">{idx+1}. {p_name} ({p_tm})</span>
+              <span style="color: #94a3b8; font-weight: 800;">{p_x:.1f} xP</span>
+            </div>
             """)
-        html.append("</td></tr></table>")
+        body.append("</div>")
 
-    html.append("</div>")
-    return "".join(html)
+    return HTML_HEADER + "".join(body) + HTML_FOOTER
 
 # 3. GOLDEN PATH CARD
 def format_html_golden_path(bundle: DecisionBundle) -> str:
-    html = []
-    html.append(f"""
-    <div style="background-color: #060911; color: #ffffff; padding: 12px; font-family: -apple-system, sans-serif;">
-      <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 18px; border: 3px solid #1f293d; margin-bottom: 14px;">
-        <tr>
-          <td>
-            <div style="font-size: 32px; font-weight: 900; color: #c084fc;">🛣️ STRATEJİK YOL HARİTASI</div>
-            <div style="font-size: 20px; color: #94a3b8; font-weight: 700; margin-top: 4px;">HiGHS MIP Optimum Gelecek Planı</div>
-          </td>
-        </tr>
-      </table>
+    body = []
+    body.append(f"""
+    <div class="card">
+      <div style="font-size: 34px; font-weight: 900; color: #c084fc;">🛣️ STRATEJİK YOL HARİTASI</div>
+      <div style="font-size: 22px; color: #94a3b8; font-weight: 700; margin-top: 6px;">HiGHS MIP Çok Dönemli Plan</div>
+    </div>
     """)
 
     for step in bundle.golden_path[:6]:
         gw_num = step.get("gw")
         act = step.get("action", "")
         target = step.get("target", "")
-        html.append(f"""
-        <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 16px; border: 2px solid #1f293d; border-left: 8px solid #38bdf8; margin-bottom: 12px;">
-          <tr>
-            <td>
-              <div style="font-size: 20px; font-weight: 900; color: #38bdf8;">GAMEWEEK {gw_num}</div>
-              <div style="font-size: 26px; font-weight: 900; color: #ffffff; margin: 6px 0;">{act}</div>
-              <div style="font-size: 20px; color: #cbd5e1; font-weight: 600;">{target}</div>
-            </td>
-          </tr>
-        </table>
+        body.append(f"""
+        <div class="card" style="border-left: 8px solid #38bdf8;">
+          <div style="font-size: 22px; font-weight: 900; color: #38bdf8;">GAMEWEEK {gw_num}</div>
+          <div style="font-size: 28px; font-weight: 900; color: #ffffff; margin: 8px 0;">{act}</div>
+          <div style="font-size: 22px; color: #cbd5e1; font-weight: 600;">{target}</div>
+        </div>
         """)
 
-    html.append("</div>")
-    return "".join(html)
+    return HTML_HEADER + "".join(body) + HTML_FOOTER
 
 # 4. CHIPS & TIMING CARD
 def format_html_chips(bundle: DecisionBundle) -> str:
-    html = []
-    html.append(f"""
-    <div style="background-color: #060911; color: #ffffff; padding: 12px; font-family: -apple-system, sans-serif;">
-      
-      <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 18px; border: 3px solid #1f293d; margin-bottom: 14px;">
-        <tr>
-          <td>
-            <div style="font-size: 34px; font-weight: 900; color: #fbbf24;">🃏 ÇİP & ZAMANLAMA</div>
-            <div style="font-size: 22px; color: #fde047; font-weight: 800; margin-top: 6px;">Durum: {bundle.chips_status_str}</div>
-          </td>
-        </tr>
-      </table>
+    body = []
+    body.append(f"""
+    <div class="card">
+      <div style="font-size: 36px; font-weight: 900; color: #fbbf24;">🃏 ÇİP & ZAMANLAMA</div>
+      <div style="font-size: 24px; color: #fde047; font-weight: 800; margin-top: 8px;">Durum: {bundle.chips_status_str}</div>
+    </div>
 
-      <table width="100%" bgcolor="#261a07" cellpadding="16" style="background-color: #261a07; border-radius: 16px; border: 3px solid #f59e0b; border-left: 8px solid #f59e0b; margin-bottom: 14px;">
-        <tr>
-          <td>
-            <div style="font-size: 20px; font-weight: 900; color: #fbbf24; text-transform: uppercase;">🎯 ÇİP STRATEJİSİ</div>
-            <div style="font-size: 24px; font-weight: 800; color: #ffffff; margin-top: 6px; line-height: 1.4;">{bundle.chip_advice}</div>
-          </td>
-        </tr>
-      </table>
+    <div class="card" style="background:#261a07; border: 3px solid #f59e0b; border-left: 10px solid #f59e0b;">
+      <div style="font-size: 22px; font-weight: 900; color: #fbbf24; text-transform: uppercase;">🎯 ÇİP STRATEJİSİ</div>
+      <div style="font-size: 26px; font-weight: 800; color: #ffffff; margin-top: 8px; line-height: 1.4;">{bundle.chip_advice}</div>
+    </div>
 
-      <table width="100%" bgcolor="#0c2333" cellpadding="16" style="background-color: #0c2333; border-radius: 16px; border: 3px solid #0284c7; border-left: 8px solid #0284c7;">
-        <tr>
-          <td>
-            <div style="font-size: 20px; font-weight: 900; color: #38bdf8; text-transform: uppercase;">⏱️ ZAMANLAMA KURALI</div>
-            <div style="font-size: 24px; font-weight: 800; color: #ffffff; margin-top: 6px; line-height: 1.4;">{bundle.timing_advice}</div>
-          </td>
-        </tr>
-      </table>
-
+    <div class="card" style="background:#0c2333; border: 3px solid #0284c7; border-left: 10px solid #0284c7;">
+      <div style="font-size: 22px; font-weight: 900; color: #38bdf8; text-transform: uppercase;">⏱️ ZAMANLAMA KURALI</div>
+      <div style="font-size: 26px; font-weight: 800; color: #ffffff; margin-top: 8px; line-height: 1.4;">{bundle.timing_advice}</div>
     </div>
     """)
-    return "".join(html)
+    return HTML_HEADER + "".join(body) + HTML_FOOTER
 
 # 5. HEALTH & PRICE RADAR CARD
 def format_html_health_radar(bundle: DecisionBundle) -> str:
-    html = []
-    html.append("""
-    <div style="background-color: #060911; color: #ffffff; padding: 12px; font-family: -apple-system, sans-serif;">
-      
-      <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 18px; border: 3px solid #1f293d; margin-bottom: 14px;">
-        <tr>
-          <td>
-            <div style="font-size: 34px; font-weight: 900; color: #f87171;">🏥 SAĞLIK & FİYAT RADARI</div>
-          </td>
-        </tr>
-      </table>
+    body = []
+    body.append("""
+    <div class="card">
+      <div style="font-size: 36px; font-weight: 900; color: #f87171;">🏥 SAĞLIK & FİYAT RADARI</div>
+    </div>
     """)
 
     if bundle.squad_health_issues:
-        html.append("""
-        <table width="100%" bgcolor="#220e14" cellpadding="16" style="background-color: #220e14; border-radius: 16px; border: 3px solid #ef4444; border-left: 8px solid #ef4444; margin-bottom: 14px;">
-          <tr>
-            <td>
-              <div style="font-size: 20px; font-weight: 900; color: #f87171; text-transform: uppercase; margin-bottom: 10px;">⚠️ SAKATLIK / ŞÜPHELİ OYUNCULAR</div>
+        body.append("""
+        <div class="card" style="background:#220e14; border: 3px solid #ef4444; border-left: 10px solid #ef4444;">
+          <div style="font-size: 22px; font-weight: 900; color: #f87171; text-transform: uppercase; margin-bottom: 12px;">⚠️ SAKATLIK / ŞÜPHELİ OYUNCULAR</div>
         """)
         for h in bundle.squad_health_issues:
-            html.append(f"""
-              <div style="padding: 10px 0; border-bottom: 1px solid #3d1b24;">
-                <div style="font-size: 26px; font-weight: 900; color: #ffffff;">{h.get('web_name')} ── <span style="color:#f87171;">%{h.get('chance', 0)}</span></div>
-                <div style="font-size: 20px; color: #fca5a5; margin-top: 4px;">{h.get('news', 'Durumu belirsiz')}</div>
-              </div>
+            body.append(f"""
+            <div style="padding: 10px 0; border-bottom: 1px solid #3d1b24;">
+              <div style="font-size: 28px; font-weight: 900; color: #ffffff;">{h.get('web_name')} ── <span style="color:#f87171;">%{h.get('chance', 0)}</span></div>
+              <div style="font-size: 22px; color: #fca5a5; margin-top: 4px;">{h.get('news', 'Durumu belirsiz')}</div>
+            </div>
             """)
-        html.append("</td></tr></table>")
+        body.append("</div>")
     else:
-        html.append("""
-        <table width="100%" bgcolor="#07271b" cellpadding="16" style="background-color: #07271b; border-radius: 16px; border: 3px solid #10b981; margin-bottom: 14px;">
-          <tr>
-            <td>
-              <div style="color: #4ade80; font-weight: 900; font-size: 24px;">✅ Kadroda sakatlık bulunmuyor (15/15 Sağlam).</div>
-            </td>
-          </tr>
-        </table>
+        body.append("""
+        <div class="card" style="background:#07271b; border: 3px solid #10b981;">
+          <div style="color: #4ade80; font-weight: 900; font-size: 26px;">✅ Kadroda sakatlık bulunmuyor (15/15 Sağlam).</div>
+        </div>
         """)
 
     if bundle.price_alerts:
-        html.append("""
-        <table width="100%" bgcolor="#111827" cellpadding="16" style="background-color: #111827; border-radius: 16px; border: 3px solid #1f293d;">
-          <tr>
-            <td>
-              <div style="font-size: 22px; font-weight: 900; color: #38bdf8; text-transform: uppercase; margin-bottom: 10px;">📈 FİYAT DEĞİŞİM ALARMLARI</div>
+        body.append("""
+        <div class="card">
+          <div style="font-size: 24px; font-weight: 900; color: #38bdf8; text-transform: uppercase; margin-bottom: 12px;">📈 FİYAT DEĞİŞİM ALARMLARI</div>
         """)
         for a in bundle.price_alerts[:4]:
             is_rise = a.get("direction") == "rise"
             color = "#4ade80" if is_rise else "#f87171"
             icon = "🔺 Artış" if is_rise else "🔻 Düşüş"
-            html.append(f"""
-              <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 22px; border-bottom: 1px solid #1f293d;">
-                <span style="font-weight: 800; color: #ffffff;">{a.get('web_name')}</span>
-                <span style="font-weight: 900; color: {color};">{icon} (%{int(a.get('probability', 0)*100)})</span>
-              </div>
+            body.append(f"""
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 24px; border-bottom: 1px solid #1f293d;">
+              <span style="font-weight: 800; color: #ffffff;">{a.get('web_name')}</span>
+              <span style="font-weight: 900; color: {color};">{icon} (%{int(a.get('probability', 0)*100)})</span>
+            </div>
             """)
-        html.append("</td></tr></table>")
+        body.append("</div>")
 
-    html.append("</div>")
-    return "".join(html)
+    return HTML_HEADER + "".join(body) + HTML_FOOTER
 
 async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_gws: int = 8, output_path: Path = None):
     app_logger.info(f"Starting headless analysis for Manager {manager_id}...")
@@ -410,7 +368,6 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
 
     bundle = await engine.analyze(manager_id=manager_id, horizon_gws=horizon_gws)
 
-    # 2x Large Font + Solid Dark HTML Cards
     cards_html = {
         "transfer": format_html_transfer(bundle),
         "lineup": format_html_lineup(bundle),
