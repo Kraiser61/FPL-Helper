@@ -1,0 +1,419 @@
+{
+  "meta": {
+    "manager_id": 3842372,
+    "current_gw": 1,
+    "is_preseason": true,
+    "generated_at": "2026-08-17 16:29:12",
+    "free_transfers": 99,
+    "bank": 0.0,
+    "chips_status": "2/4 Hazır (Bench Boost, Triple Captain)",
+    "available_transfers_str": "∞ Sınırsız Transfer (Sezon Öncesi)"
+  },
+  "summary_text": "⚽ FPL STRATEJİ RAPORU (GW1)\n🕒 2026-08-17 16:29:12\n─────────────────────────\n🎯 BU HAFTAKİ HAMLE:\n  🛡️ Transfer Yapma (Roll FT)\n  💡 Haftaya 5 FT esnekliği kalacak.\n  💰 Kalan Bütçe: £0.0m | FT: ∞ Sınırsız Transfer (Sezon Öncesi)\n─────────────────────────\n👑 KAPTAN TERCİHLERİ:\n  (C)  Haaland (4.0 xP)\n  (VC) Saka (3.2 xP)\n  📋 Diziliş: 3-5-2\n─────────────────────────\n🛣️ ÇOK HAFTALIK YOL HARİTASI:\n  GW1: 🛡️ Transfer Sakla (Roll FT) ──► Gelecek Hafta 1 FT\n  GW2: ❌ Saka ──► ✅ Mbeumo\n  GW3: ❌ Mbeumo ──► ✅ Saka\n  GW4: ❌ Shaw ──► ✅ Cash\n─────────────────────────\n🃏 ÇİP & ZAMANLAMA STRATEJİSİ:\n  💡 Chip Sakla: Mevcut haftalarda standart transfer ve Roll FT stratejisi önerilir.\n  ⚽ SEZON ÖNCESİ: Sınırsız transfer hakkınız bulunmaktadır. Son maç gününe kadar kadronuzu cezasız yenileyebilirsiniz.",
+  "primary_action": {
+    "type": "roll_ft",
+    "decision_code": "ROLL_FT",
+    "transfers_in": [],
+    "transfers_out": [],
+    "net_xp_gain": 0.0,
+    "hit_cost": 0,
+    "budget_remaining": 0.0,
+    "summary_reason": "Open-FPL-Solver analizine göre bu hafta transfer hakkınızı saklamak (Roll FT) uzun vadede daha yüksek matematiksel değer üretiyor.",
+    "reasons": [
+      "Mevcut 11'inizin puan potansiyeli bu hafta için yeterince dengeli ve güçlü.",
+      "Acil transfer gerektiren kritik bir sakatlık veya değer kaybı bulunmuyor.",
+      "Transfer hakkını harcamayıp haftaya devrederek 2 FT ile çift transfer esnekliği elde edebilirsiniz."
+    ]
+  },
+  "lineup": {
+    "formation": "3-5-2",
+    "total_xp": 33.8,
+    "captain": {
+      "id": 411,
+      "name": "Haaland",
+      "element_type": 4,
+      "team_id": 15,
+      "cost": 15.5,
+      "xp_next_gw": 4.0,
+      "form": 0.0,
+      "chance_playing": 100,
+      "status": "a",
+      "news": "",
+      "ownership": 71.5,
+      "boom_index": 5.2
+    },
+    "vice_captain": {
+      "id": 12,
+      "name": "Saka",
+      "element_type": 3,
+      "team_id": 1,
+      "cost": 9.5,
+      "xp_next_gw": 3.2,
+      "form": 0.0,
+      "chance_playing": 100,
+      "status": "a",
+      "news": "",
+      "ownership": 10.0,
+      "boom_index": 4.2
+    },
+    "starters": [
+      {
+        "id": 109,
+        "name": "Verbruggen",
+        "element_type": 1,
+        "team_id": 5,
+        "cost": 4.5,
+        "xp_next_gw": 1.9,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 18.7,
+        "boom_index": 2.5
+      },
+      {
+        "id": 387,
+        "name": "O'Reilly",
+        "element_type": 2,
+        "team_id": 15,
+        "cost": 6.5,
+        "xp_next_gw": 3.1,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 21.7,
+        "boom_index": 4.0
+      },
+      {
+        "id": 388,
+        "name": "Guéhi",
+        "element_type": 2,
+        "team_id": 15,
+        "cost": 6.0,
+        "xp_next_gw": 2.8,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 20.9,
+        "boom_index": 3.6
+      },
+      {
+        "id": 356,
+        "name": "Virgil",
+        "element_type": 2,
+        "team_id": 14,
+        "cost": 6.5,
+        "xp_next_gw": 3.1,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 17.5,
+        "boom_index": 4.0
+      },
+      {
+        "id": 12,
+        "name": "Saka",
+        "element_type": 3,
+        "team_id": 1,
+        "cost": 9.5,
+        "xp_next_gw": 3.2,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 10.0,
+        "boom_index": 4.2
+      },
+      {
+        "id": 13,
+        "name": "Rice",
+        "element_type": 3,
+        "team_id": 1,
+        "cost": 7.5,
+        "xp_next_gw": 2.6,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 20.5,
+        "boom_index": 3.4
+      },
+      {
+        "id": 237,
+        "name": "Ndiaye",
+        "element_type": 3,
+        "team_id": 9,
+        "cost": 6.0,
+        "xp_next_gw": 2.1,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 15.6,
+        "boom_index": 2.7
+      },
+      {
+        "id": 368,
+        "name": "Szoboszlai",
+        "element_type": 3,
+        "team_id": 14,
+        "cost": 7.0,
+        "xp_next_gw": 2.5,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 41.4,
+        "boom_index": 3.2
+      },
+      {
+        "id": 367,
+        "name": "Gakpo",
+        "element_type": 3,
+        "team_id": 14,
+        "cost": 7.0,
+        "xp_next_gw": 2.5,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 3.5,
+        "boom_index": 3.2
+      },
+      {
+        "id": 411,
+        "name": "Haaland",
+        "element_type": 4,
+        "team_id": 15,
+        "cost": 15.5,
+        "xp_next_gw": 4.0,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 71.5,
+        "boom_index": 5.2
+      },
+      {
+        "id": 346,
+        "name": "Calvert-Lewin",
+        "element_type": 4,
+        "team_id": 13,
+        "cost": 6.0,
+        "xp_next_gw": 2.0,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 26.4,
+        "boom_index": 2.6
+      }
+    ],
+    "bench": [
+      {
+        "id": 497,
+        "name": "Dubravka",
+        "element_type": 1,
+        "team_id": 19,
+        "cost": 4.0,
+        "xp_next_gw": 1.0,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 22.0,
+        "boom_index": 1.3
+      },
+      {
+        "id": 113,
+        "name": "F.Kadıoğlu",
+        "element_type": 2,
+        "team_id": 5,
+        "cost": 4.5,
+        "xp_next_gw": 1.7,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 3.1,
+        "boom_index": 2.2
+      },
+      {
+        "id": 423,
+        "name": "Shaw",
+        "element_type": 2,
+        "team_id": 16,
+        "cost": 4.5,
+        "xp_next_gw": 1.7,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 23.2,
+        "boom_index": 2.2
+      },
+      {
+        "id": 195,
+        "name": "Simms",
+        "element_type": 4,
+        "team_id": 7,
+        "cost": 5.0,
+        "xp_next_gw": 1.4,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 0.8,
+        "boom_index": 1.8
+      }
+    ]
+  },
+  "golden_path": [
+    {
+      "gw": 1,
+      "action": "🛡️ Transfer Sakla (Roll FT) ──► Gelecek Hafta 1 FT",
+      "target": "Haftaya Çoklu Transfer Esnekliği",
+      "reason": "Mevcut 11 yeterli; gereksiz transfer yapmayıp hak devretme stratejisi."
+    },
+    {
+      "gw": 2,
+      "action": "❌ Saka ──► ✅ Mbeumo",
+      "target": "Net xP Artışı & Bütçe: £1.5m",
+      "reason": "HiGHS MIP optimum puan getirisini maksimize eden transfer rotası."
+    },
+    {
+      "gw": 3,
+      "action": "❌ Mbeumo ──► ✅ Saka",
+      "target": "Net xP Artışı & Bütçe: £0.0m",
+      "reason": "HiGHS MIP optimum puan getirisini maksimize eden transfer rotası."
+    },
+    {
+      "gw": 4,
+      "action": "❌ Shaw ──► ✅ Cash",
+      "target": "Net xP Artışı & Bütçe: £0.0m",
+      "reason": "HiGHS MIP optimum puan getirisini maksimize eden transfer rotası."
+    },
+    {
+      "gw": 5,
+      "action": "🛡️ Transfer Sakla (Roll FT) ──► Gelecek Hafta 2 FT",
+      "target": "Haftaya Çoklu Transfer Esnekliği",
+      "reason": "Mevcut 11 yeterli; gereksiz transfer yapmayıp hak devretme stratejisi."
+    },
+    {
+      "gw": 6,
+      "action": "❌ Verbruggen, Virgil, Ndiaye ──► ✅ Sánchez, Gusto, Bruno G.",
+      "target": "Net xP Artışı & Bütçe: £0.0m",
+      "reason": "HiGHS MIP optimum puan getirisini maksimize eden transfer rotası."
+    },
+    {
+      "gw": 7,
+      "action": "🛡️ Transfer Sakla (Roll FT) ──► Gelecek Hafta 1 FT",
+      "target": "Haftaya Çoklu Transfer Esnekliği",
+      "reason": "Mevcut 11 yeterli; gereksiz transfer yapmayıp hak devretme stratejisi."
+    },
+    {
+      "gw": 8,
+      "action": "🛡️ Transfer Sakla (Roll FT) ──► Gelecek Hafta 2 FT",
+      "target": "Haftaya Çoklu Transfer Esnekliği",
+      "reason": "Mevcut 11 yeterli; gereksiz transfer yapmayıp hak devretme stratejisi."
+    }
+  ],
+  "chip_strategy": {
+    "chip_advice": "💡 Chip Sakla: Mevcut haftalarda standart transfer ve Roll FT stratejisi önerilir.",
+    "active_chip": null,
+    "available_chips": [
+      "Bench Boost",
+      "Triple Captain"
+    ]
+  },
+  "timing_advice": "⚽ SEZON ÖNCESİ: Sınırsız transfer hakkınız bulunmaktadır. Son maç gününe kadar kadronuzu cezasız yenileyebilirsiniz.",
+  "captain_picks": [
+    {
+      "player": {
+        "id": 411,
+        "name": "Haaland",
+        "element_type": 4,
+        "team_id": 15,
+        "cost": 15.5,
+        "xp_next_gw": 4.0,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 71.5,
+        "boom_index": 5.2
+      },
+      "captain_score": 8.0,
+      "is_differential": false,
+      "boom_index": 5.2,
+      "reason": "Haaland: 4.0 xP | MIP Optimum Kaptanlık Tercihi"
+    },
+    {
+      "player": {
+        "id": 12,
+        "name": "Saka",
+        "element_type": 3,
+        "team_id": 1,
+        "cost": 9.5,
+        "xp_next_gw": 3.2,
+        "form": 0.0,
+        "chance_playing": 100,
+        "status": "a",
+        "news": "",
+        "ownership": 10.0,
+        "boom_index": 4.2
+      },
+      "captain_score": 4.8,
+      "is_differential": true,
+      "boom_index": 4.2,
+      "reason": "Saka: 3.2 xP | Güvenli 2. Kaptan Tercihi"
+    }
+  ],
+  "squad_health": [],
+  "price_alerts": [],
+  "fixture_swings": [
+    {
+      "team_id": 16,
+      "team_name": "Man Utd",
+      "near_fdr": 2.3,
+      "far_fdr": 3.3,
+      "swing_score": 2.0,
+      "transfer_signal": true,
+      "type": "radar_dgw_swing",
+      "description": "Man Utd: DGW/BGW Radarı önemli bir fikstür dönüşü tespit etti (Swing: 2.0)."
+    },
+    {
+      "team_id": 20,
+      "team_name": "Sunderland",
+      "near_fdr": 2.3,
+      "far_fdr": 3.7,
+      "swing_score": 2.667,
+      "transfer_signal": true,
+      "type": "radar_dgw_swing",
+      "description": "Sunderland: DGW/BGW Radarı önemli bir fikstür dönüşü tespit etti (Swing: 2.667)."
+    },
+    {
+      "team_id": 4,
+      "team_name": "Brentford",
+      "near_fdr": 2.7,
+      "far_fdr": 3.7,
+      "swing_score": 2.0,
+      "transfer_signal": true,
+      "type": "radar_dgw_swing",
+      "description": "Brentford: DGW/BGW Radarı önemli bir fikstür dönüşü tespit etti (Swing: 2.0)."
+    },
+    {
+      "team_id": 9,
+      "team_name": "Everton",
+      "near_fdr": 3.3,
+      "far_fdr": 2.3,
+      "swing_score": 2.0,
+      "transfer_signal": true,
+      "type": "radar_dgw_swing",
+      "description": "Everton: DGW/BGW Radarı önemli bir fikstür dönüşü tespit etti (Swing: 2.0)."
+    }
+  ]
+}
