@@ -113,7 +113,7 @@
         "purchase_price": 75
       },
       {
-        "element": 497,
+        "element": 352,
         "position": 12,
         "multiplier": 0,
         "is_captain": false,
@@ -153,7 +153,7 @@
         "purchase_price": 60
       }
     ],
-    "picks_last_updated": "2026-08-17T15:22:54.803652Z",
+    "picks_last_updated": "2026-08-17T15:54:36.070659Z",
     "chips": [
       {
         "id": 4,
@@ -187,5 +187,5 @@
       "value": 1000
     }
   },
-  "synced_at": "2026-08-17T15:53:58.680Z"
+  "synced_at": "2026-08-17T15:54:48.801Z"
 }
