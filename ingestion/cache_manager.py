@@ -17,53 +17,59 @@ class CacheManager:
 
     @staticmethod
     def get_cache_meta(endpoint: str) -> Optional[Dict[str, Any]]:
-        query = "SELECT * FROM api_cache_meta WHERE endpoint = ?"
-        with db_manager.get_connection() as conn:
-            cursor = conn.execute(query, (endpoint,))
-            row = cursor.fetchone()
-            if row:
-                return dict(row)
+        try:
+            query = "SELECT * FROM api_cache_meta WHERE endpoint = ?"
+            with db_manager.get_connection() as conn:
+                cursor = conn.execute(query, (endpoint,))
+                row = cursor.fetchone()
+                if row:
+                    return dict(row)
+        except Exception as e:
+            app_logger.warning(f"Cache lookup failed for {endpoint}: {e}")
         return None
 
     @staticmethod
     def update_cache_meta(endpoint: str, ttl_seconds: int, status: str = 'ok', response_hash: Optional[str] = None):
-        query = """
-        INSERT INTO api_cache_meta (endpoint, last_fetched, ttl_seconds, response_hash, status)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(endpoint) DO UPDATE SET
-            last_fetched = excluded.last_fetched,
-            ttl_seconds = excluded.ttl_seconds,
-            response_hash = excluded.response_hash,
-            status = excluded.status
-        """
-        now_str = CacheManager._now().isoformat()
-        with db_manager.get_connection() as conn:
-            conn.execute(query, (endpoint, now_str, ttl_seconds, response_hash, status))
-            conn.commit()
+        try:
+            query = """
+            INSERT INTO api_cache_meta (endpoint, last_fetched, ttl_seconds, response_hash, status)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(endpoint) DO UPDATE SET
+                last_fetched = excluded.last_fetched,
+                ttl_seconds = excluded.ttl_seconds,
+                response_hash = excluded.response_hash,
+                status = excluded.status
+            """
+            now_str = CacheManager._now().isoformat()
+            with db_manager.get_connection() as conn:
+                conn.execute(query, (endpoint, now_str, ttl_seconds, response_hash, status))
+                conn.commit()
+        except Exception as e:
+            app_logger.warning(f"Cache update failed for {endpoint}: {e}")
 
     @staticmethod
     def save_cached_response(endpoint: str, data: Dict[str, Any], ttl_seconds: int):
         """Saves a JSON response to the database and updates metadata using deterministic SHA-256."""
-        json_str = json.dumps(data)
-        response_hash = hashlib.sha256(json_str.encode('utf-8')).hexdigest()
-        
-        # Update meta FIRST to satisfy Foreign Key constraint in api_cache_data
-        CacheManager.update_cache_meta(endpoint, ttl_seconds, status='ok', response_hash=response_hash)
-        
-        query_data = """
-        INSERT INTO api_cache_data (endpoint, json_data)
-        VALUES (?, ?)
-        ON CONFLICT(endpoint) DO UPDATE SET
-            json_data = excluded.json_data
-        """
-        
-        with db_manager.get_connection() as conn:
-            try:
+        try:
+            json_str = json.dumps(data)
+            response_hash = hashlib.sha256(json_str.encode('utf-8')).hexdigest()
+            
+            # Update meta FIRST to satisfy Foreign Key constraint in api_cache_data
+            CacheManager.update_cache_meta(endpoint, ttl_seconds, status='ok', response_hash=response_hash)
+            
+            query_data = """
+            INSERT INTO api_cache_data (endpoint, json_data)
+            VALUES (?, ?)
+            ON CONFLICT(endpoint) DO UPDATE SET
+                json_data = excluded.json_data
+            """
+            
+            with db_manager.get_connection() as conn:
                 conn.execute(query_data, (endpoint, json_str))
                 conn.commit()
                 app_logger.debug(f"Cached response for {endpoint} with TTL {ttl_seconds}s")
-            except Exception as e:
-                app_logger.error(f"Failed to cache response data for {endpoint}: {e}")
+        except Exception as e:
+            app_logger.warning(f"Failed to cache response data for {endpoint}: {e}")
 
     @staticmethod
     def get_cached_response(endpoint: str) -> Optional[Dict[str, Any]]:

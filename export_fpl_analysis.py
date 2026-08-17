@@ -372,6 +372,10 @@ def format_html_health_radar(bundle: DecisionBundle) -> str:
 async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_gws: int = 8, output_path: Path = None):
     app_logger.info(f"Starting headless analysis for Manager {manager_id}...")
 
+    # Ensure SQLite database schema and tables (e.g. api_cache_meta) are initialized
+    from data.database import db_manager
+    db_manager.init_db()
+
     # Check if raw team data was passed via environment variable (from mobile workflow_dispatch)
     raw_team_data = os.environ.get("RAW_TEAM_DATA", "").strip()
     if raw_team_data:
