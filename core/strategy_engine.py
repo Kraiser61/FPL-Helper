@@ -119,8 +119,22 @@ class StrategyEngine:
         """Executes full Open-FPL-Solver pipeline and returns complete DecisionBundle."""
         app_logger.info(f"Open-FPL-Solver strateji analizi çalıştırılıyor (Manager {manager_id}, Horizon {horizon_gws})...")
 
+        # Step 0: Ensure fresh hybrid FPL Review CSV is available
+        try:
+            from ingestion.fplreview_scraper import generate_hybrid_fplreview_csv
+            from core.solver.paths import DATA_DIR
+            target_csv = DATA_DIR / "fplreview.csv"
+            import time
+            is_stale = not target_csv.exists() or (time.time() - target_csv.stat().st_mtime > 21600)
+            if is_stale:
+                app_logger.info("FPL Review canlı projeksiyonları güncelleniyor...")
+                await generate_hybrid_fplreview_csv(horizon_gws=horizon_gws)
+        except Exception as e:
+            app_logger.warning(f"FPL Review canlı veri kontrolü atlandı: {e}")
+
         bootstrap_task = self.fpl_client.get_bootstrap_static()
         fixtures_task = self.fpl_client.get_fixtures()
+
 
         bootstrap, all_fixtures = await asyncio.gather(bootstrap_task, fixtures_task, return_exceptions=True)
 
@@ -296,7 +310,9 @@ class StrategyEngine:
             "horizon": horizon_gws,
             "num_iterations": 1,
             "verbose": False,
+            "datasource": "fplreview",
         }
+
 
         solver_results = self.solver_service.run_optimization(
             team_data=my_team_raw,
