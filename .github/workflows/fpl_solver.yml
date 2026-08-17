@@ -61,7 +61,8 @@ jobs:
             echo "Verilerde değişiklik yok. Commit atlanıyor."
           else
             git commit -m "Auto: Update FPL Strategy Analysis & Hybrid FPLReview CSV [skip ci]"
-            git push
+            git pull --rebase origin main || true
+            git push origin main
           fi
 
 
