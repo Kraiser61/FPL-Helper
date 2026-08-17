@@ -477,6 +477,10 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         "fixture_swings": bundle.fixture_swings,
     }
 
+    # Format rich Telegram message
+    tg_report = format_telegram_report(payload)
+    payload["telegram_report"] = tg_report
+
     if output_path is None:
         data_dir = BASE_DIR / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
@@ -486,7 +490,114 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
     app_logger.success(f"Analysis JSON successfully generated at: {output_path}")
+
+    # Send directly to Telegram if configured
+    send_telegram_report(tg_report)
+
     return payload
+
+def format_telegram_report(payload: dict) -> str:
+    meta = payload.get("meta", {})
+    gw = meta.get("current_gw", 1)
+    lineup = payload.get("lineup", {})
+    action = payload.get("primary_action", {})
+    chips = payload.get("chip_strategy", {})
+    health = payload.get("squad_health", [])
+
+    lines = []
+    lines.append(f"🦁 <b>FPL STRATEJİ RAPORU (GW{gw})</b>")
+    lines.append(f"<i>Yapay Zeka & Poisson-Elo Projeksiyon Çözümü</i>\n")
+
+    # 1. Kaptan & 2. Kaptan
+    cap = lineup.get("captain", {})
+    vc = lineup.get("vice_captain", {})
+    cap_name = cap.get("web_name", "Belirlenmedi") if cap else "-"
+    vc_name = vc.get("web_name", "Belirlenmedi") if vc else "-"
+    lines.append(f"👑 <b>Kaptan:</b> {cap_name}")
+    lines.append(f"🥈 <b>2. Kaptan:</b> {vc_name}\n")
+
+    # 2. Transfer Kararı
+    t_type = action.get("type", "roll_ft")
+    if t_type == "roll_ft":
+        lines.append("🎯 <b>Transfer:</b> 🛡️ Transferi Pas Geç (Roll FT)")
+        lines.append(f"   <i>Tavsiye: Gelecek hafta için 2 FT biriktir.</i>\n")
+    elif t_type == "single_transfer":
+        tin = action.get("transfers_in", [{}])[0].get("web_name", "?")
+        tout = action.get("transfers_out", [{}])[0].get("web_name", "?")
+        gain = action.get("net_xp_gain", 0.0)
+        lines.append(f"🎯 <b>Transfer:</b> 🔴 {tout} ➔ 🟢 {tin}")
+        lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
+    elif t_type == "double_transfer":
+        tins = ", ".join([p.get("web_name", "?") for p in action.get("transfers_in", [])])
+        touts = ", ".join([p.get("web_name", "?") for p in action.get("transfers_out", [])])
+        gain = action.get("net_xp_gain", 0.0)
+        lines.append(f"🎯 <b>Çift Transfer:</b> 🔴 {touts} ➔ 🟢 {tins}")
+        lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
+
+    # 3. İdeal 11 & Diziliş
+    formation = lineup.get("formation", "3-5-2")
+    total_xp = lineup.get("total_xp", 0.0)
+    lines.append(f"📋 <b>İdeal 11 ({formation}) - Toplam xP: {total_xp}:</b>")
+    starters = lineup.get("starters", [])
+    
+    gkps = [p.get("web_name") for p in starters if p.get("element_type") == 1]
+    defs = [p.get("web_name") for p in starters if p.get("element_type") == 2]
+    mids = [p.get("web_name") for p in starters if p.get("element_type") == 3]
+    fwds = [p.get("web_name") for p in starters if p.get("element_type") == 4]
+    
+    if gkps: lines.append(f"🧤 <b>KL:</b> {', '.join(gkps)}")
+    if defs: lines.append(f"🛡️ <b>DF:</b> {', '.join(defs)}")
+    if mids: lines.append(f"⚙️ <b>OS:</b> {', '.join(mids)}")
+    if fwds: lines.append(f"⚡ <b>FV:</b> {', '.join(fwds)}")
+
+    bench = [p.get("web_name") for p in lineup.get("bench", [])]
+    if bench:
+        lines.append(f"🪑 <b>Yedekler:</b> {', '.join(bench)}\n")
+    else:
+        lines.append("")
+
+    # 4. Çip Tavsiyesi
+    chip_adv = chips.get("chip_advice")
+    if chip_adv:
+        lines.append(f"🚀 <b>Çip Stratejisi:</b> {chip_adv}\n")
+
+    # 5. Sağlık / Sakatlık Radarı
+    if health:
+        lines.append("🏥 <b>Sağlık / Sakatlık Radarı:</b>")
+        for h in health:
+            w_name = h.get("web_name")
+            chance = h.get("chance")
+            news = h.get("news", "Belirsiz")
+            status_emoji = "🔴" if chance == 0 else "🟡"
+            lines.append(f"{status_emoji} <b>{w_name}:</b> %{chance if chance is not None else '?'} ({news})")
+        lines.append("")
+
+    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+    return "\n".join(lines)
+
+def send_telegram_report(report_text: str):
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    if not bot_token or not chat_id:
+        app_logger.info("TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured in environment.")
+        return False
+    try:
+        import urllib.request
+        import urllib.parse
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = urllib.parse.urlencode({
+            "chat_id": chat_id,
+            "text": report_text,
+            "parse_mode": "HTML"
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status == 200:
+                app_logger.success("Telegram analysis report sent successfully!")
+                return True
+    except Exception as e:
+        app_logger.error(f"Failed to send Telegram message: {e}")
+    return False
 
 if __name__ == "__main__":
     if sys.stdout.encoding != 'utf-8':

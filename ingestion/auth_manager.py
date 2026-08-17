@@ -1,3 +1,4 @@
+import os
 import httpx
 from typing import Optional, Dict
 from utils.logger import app_logger
@@ -17,16 +18,28 @@ class AuthManager:
         self._email: Optional[str] = None
         self._password: Optional[str] = None
         
-        # Load saved values only when the OS credential backend is available.
-        # A headless Linux session may not expose a keyring; that must not block UI startup.
-        saved_email = self._safe_get_password("fpl_email")
-        saved_password = self._safe_get_password("fpl_password")
-        if saved_email and saved_password:
-            self.set_credentials(saved_email, saved_password)
+        # Priority 1: Environment Variables (e.g. CI/CD GitHub Actions Secrets)
+        env_email = os.environ.get("FPL_EMAIL")
+        env_password = os.environ.get("FPL_PASSWORD")
+        env_token = os.environ.get("FPL_AUTH_TOKEN")
+        if env_email and env_password:
+            self.set_credentials(env_email, env_password)
+            app_logger.info("Loaded FPL credentials from environment variables.")
+        if env_token:
+            self.set_auth_token(env_token)
+            app_logger.info("Loaded FPL auth token from environment variables.")
 
-        saved_auth = self._safe_get_password("fpl_auth_token") or self._load_token_from_disk()
-        if saved_auth:
-            self.set_auth_token(saved_auth)
+        # Priority 2: Keyring / Disk cache
+        if not self._email or not self._password:
+            saved_email = self._safe_get_password("fpl_email")
+            saved_password = self._safe_get_password("fpl_password")
+            if saved_email and saved_password:
+                self.set_credentials(saved_email, saved_password)
+
+        if not self._custom_headers and not self._cookies:
+            saved_auth = self._safe_get_password("fpl_auth_token") or self._load_token_from_disk()
+            if saved_auth:
+                self.set_auth_token(saved_auth)
 
     @staticmethod
     def _safe_get_password(username: str) -> Optional[str]:

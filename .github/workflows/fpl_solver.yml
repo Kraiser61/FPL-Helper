@@ -1,19 +1,20 @@
 name: FPL Strategy Solver & Exporter
 
 on:
-  workflow_dispatch: # Manuel tetikleme (Telefondan veya Web'den)
+  workflow_dispatch: # Manuel tetikleme (Telefondan, Web'den veya API'den)
     inputs:
       team_data:
         description: 'Raw FPL my-team JSON from mobile Safari'
         required: false
         default: ''
+  repository_dispatch: # Google Apps Script / Telegram Webhook tetiklemesi
+    types: [telegram-trigger, solve, analyze]
   schedule:
     # Her gün saat 05:00 ve 17:00 UTC (Türkiye saatiyle 08:00 ve 20:00)
     - cron: '0 5,17 * * *'
   push:
     branches:
       - main
-
 
 permissions:
   contents: write
@@ -42,7 +43,12 @@ jobs:
 
       - name: Run FPL Strategy Solver & Generate JSON
         env:
-          RAW_TEAM_DATA: ${{ github.event.inputs.team_data }}
+          FPL_EMAIL: ${{ secrets.FPL_EMAIL }}
+          FPL_PASSWORD: ${{ secrets.FPL_PASSWORD }}
+          FPL_AUTH_TOKEN: ${{ secrets.FPL_AUTH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RAW_TEAM_DATA: ${{ github.event.inputs.team_data || github.event.client_payload.team_data }}
         run: |
           python export_fpl_analysis.py
 
