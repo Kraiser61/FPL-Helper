@@ -8,8 +8,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'data/synced_team.json'
+
 
 permissions:
   contents: write
