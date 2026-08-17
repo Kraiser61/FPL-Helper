@@ -371,12 +371,20 @@ def format_html_health_radar(bundle: DecisionBundle) -> str:
 
 async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_gws: int = 8, output_path: Path = None):
     app_logger.info(f"Starting headless analysis for Manager {manager_id}...")
+
+    # Step 0: Scrape live FPL Review projections and build hybrid CSV
+    try:
+        from ingestion.fplreview_scraper import generate_hybrid_fplreview_csv
+        await generate_hybrid_fplreview_csv(horizon_gws=horizon_gws)
+    except Exception as e:
+        app_logger.warning(f"FPL Review otomatik kazıma atlandı (yerleşik motor kullanılacak): {e}")
     
     auth_manager = AuthManager()
     fpl_client = FPLClient(auth_manager=auth_manager)
     engine = StrategyEngine(fpl_client=fpl_client, risk_profile="balanced")
 
     bundle = await engine.analyze(manager_id=manager_id, horizon_gws=horizon_gws)
+
 
     cards_html = {
         "transfer": format_html_transfer(bundle),

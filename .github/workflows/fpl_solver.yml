@@ -30,26 +30,28 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install Dependencies
+      - name: Install Dependencies & Playwright
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-headless.txt
+          python -m playwright install --with-deps chromium
 
       - name: Run FPL Strategy Solver & Generate JSON
         run: |
           python export_fpl_analysis.py
 
-      - name: Commit and Push Analysis JSON
+      - name: Commit and Push Analysis Data
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/fpl_analysis.json
+          git add data/fpl_analysis.json data/fplreview.csv
           if git diff --staged --quiet; then
-            echo "Analiz JSON dosyasında değişiklik yok. Commit atlanıyor."
+            echo "Verilerde değişiklik yok. Commit atlanıyor."
           else
-            git commit -m "Auto: Update FPL Strategy Analysis [skip ci]"
+            git commit -m "Auto: Update FPL Strategy Analysis & Hybrid FPLReview CSV [skip ci]"
             git push
           fi
+
 
       - name: Send Telegram Notification (Optional)
         if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
