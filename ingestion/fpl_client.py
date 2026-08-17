@@ -15,6 +15,50 @@ from ingestion.auth_manager import AuthManager
 from ingestion.cache_manager import CacheManager
 from utils.logger import app_logger
 
+def parse_raw_text_to_team_data(raw_text: str, elements: list) -> dict:
+    import re
+    from fuzzywuzzy import fuzz
+    lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+    found_players = []
+    found_ids = set()
+    pos_limits = {1: 2, 2: 5, 3: 5, 4: 3}
+    pos_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+
+    # Pass 1: exact web_name matches
+    for line in lines:
+        if len(line) < 3 or len(line) > 25:
+            continue
+        clean = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', line).strip()
+        for p in elements:
+            if p.id in found_ids or pos_counts[p.element_type] >= pos_limits[p.element_type]:
+                continue
+            if p.web_name.lower() == clean.lower():
+                found_players.append(p)
+                found_ids.add(p.id)
+                pos_counts[p.element_type] += 1
+                break
+
+    # Pass 2: fuzzy match
+    if len(found_players) < 15:
+        for line in lines:
+            if len(line) < 3 or len(line) > 25:
+                continue
+            clean = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', line).strip()
+            for p in elements:
+                if p.id in found_ids or pos_counts[p.element_type] >= pos_limits[p.element_type]:
+                    continue
+                if fuzz.token_sort_ratio(clean.lower(), p.web_name.lower()) >= 85:
+                    found_players.append(p)
+                    found_ids.add(p.id)
+                    pos_counts[p.element_type] += 1
+                    break
+            if len(found_players) == 15:
+                break
+
+    found_players.sort(key=lambda x: x.element_type)
+    picks = [{"element": p.id, "position": idx, "is_captain": idx == 8, "is_vice_captain": idx == 9} for idx, p in enumerate(found_players, 1)]
+    return {"picks": picks, "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}}
+
 class FPLClient:
     """
     Async HTTP client for interacting with the Fantasy Premier League API.
@@ -147,11 +191,21 @@ class FPLClient:
         except Exception as e:
             app_logger.warning(f"Authenticated my-team request failed ({e}). Checking local sync cache...")
             synced = load_synced_team_from_disk()
-            if synced and "team_data" in synced:
-                t_data = synced["team_data"]
-                if "picks" in t_data:
+            if synced:
+                if "team_data" in synced and "picks" in synced["team_data"] and synced["team_data"]["picks"]:
                     app_logger.info("Successfully loaded squad from local browser sync cache.")
-                    return UserTeamDTO(**t_data)
+                    return UserTeamDTO(**synced["team_data"])
+                
+                # Check if raw_text exists from mobile DOM dump
+                raw_text = synced.get("raw_text") or (synced.get("team_data", {}).get("raw_text") if isinstance(synced.get("team_data"), dict) else None)
+                if raw_text:
+                    app_logger.info("Parsing squad from mobile raw_text DOM dump...")
+                    bootstrap = await self.get_bootstrap_static()
+                    parsed_td = parse_raw_text_to_team_data(raw_text, bootstrap.elements)
+                    if parsed_td and parsed_td.get("picks"):
+                        app_logger.info(f"Extracted {len(parsed_td['picks'])} picks from mobile page text.")
+                        save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_td})
+                        return UserTeamDTO(**parsed_td)
             raise e
             
         return UserTeamDTO()
