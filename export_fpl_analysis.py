@@ -379,21 +379,84 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     auth_manager = AuthManager()
     fpl_client = FPLClient(auth_manager=auth_manager)
 
-    # Check if raw team data was passed via environment variable (from mobile workflow_dispatch or Telegram)
+    # Check if command or raw team data was passed via environment variable (from Telegram / GitHub Action)
     raw_team_data = os.environ.get("RAW_TEAM_DATA", "").strip()
+    cmd_lower = raw_team_data.lower()
+
+    # Fast cached response for lightweight query commands
+    cached_path = output_path or (BASE_DIR / "data" / "fpl_analysis.json")
+    if cmd_lower in ("/kaptan", "kaptan", "/sakatlar", "sakatlar", "/revir", "revir", "/fikstur", "fikstur", "/fiyat", "fiyat") and cached_path.exists():
+        try:
+            with open(cached_path, "r", encoding="utf-8") as f:
+                cached_data = json.load(f)
+            if cmd_lower in ("/kaptan", "kaptan"):
+                send_telegram_report(format_telegram_captain_report(cached_data))
+                return cached_data
+            elif cmd_lower in ("/sakatlar", "sakatlar", "/revir", "revir"):
+                send_telegram_report(format_telegram_health_report(cached_data))
+                return cached_data
+            elif cmd_lower in ("/fikstur", "fikstur"):
+                send_telegram_report(format_telegram_fixture_report(cached_data))
+                return cached_data
+            elif cmd_lower in ("/fiyat", "fiyat"):
+                send_telegram_report(format_telegram_price_report(cached_data))
+                return cached_data
+        except Exception as e:
+            app_logger.warning(f"Could not use cached analysis for {cmd_lower}: {e}")
+
+    transfer_notification_text = ""
     if raw_team_data:
         try:
-            from ingestion.local_sync_server import save_synced_team_to_disk
+            from ingestion.local_sync_server import save_synced_team_to_disk, load_synced_team_from_disk
             from ingestion.fpl_client import parse_raw_text_to_team_data
+            import re
+            from fuzzywuzzy import fuzz
             
-            if raw_team_data.startswith("{"):
+            # Single transfer command: e.g. "/transfer Welbeck yerine Isak" or "/sat Haaland /al Watkins"
+            if ("yerine" in cmd_lower or "/sat" in cmd_lower or "->" in cmd_lower or cmd_lower.startswith("/transfer") or cmd_lower.startswith("transfer")):
+                synced = load_synced_team_from_disk()
+                if synced and "team_data" in synced and "picks" in synced["team_data"]:
+                    picks = synced["team_data"]["picks"]
+                    bootstrap = await fpl_client.get_bootstrap_static()
+                    parts = re.split(r'yerine|->|/sat|/al|/transfer|transfer|,', raw_team_data, flags=re.IGNORECASE)
+                    parts = [p.strip() for p in parts if p.strip()]
+                    if len(parts) >= 2:
+                        p_out_str, p_in_str = parts[0], parts[1]
+                        out_p = None
+                        best_out_score = 0
+                        for pick in picks:
+                            p_obj = next((e for e in bootstrap.elements if e.id == pick["element"]), None)
+                            if p_obj:
+                                score = fuzz.token_sort_ratio(p_out_str.lower(), p_obj.web_name.lower())
+                                if score > best_out_score and score >= 60:
+                                    best_out_score = score
+                                    out_p = p_obj
+                        in_p = None
+                        best_in_score = 0
+                        for e in bootstrap.elements:
+                            score = max(fuzz.token_sort_ratio(p_in_str.lower(), e.web_name.lower()), fuzz.token_sort_ratio(p_in_str.lower(), f"{e.first_name} {e.second_name}".lower()) if hasattr(e, 'first_name') else 0)
+                            if score > best_in_score and score >= 65:
+                                best_in_score = score
+                                in_p = e
+                        if out_p and in_p:
+                            for pick in picks:
+                                if pick["element"] == out_p.id:
+                                    pick["element"] = in_p.id
+                                    break
+                            save_synced_team_to_disk({"manager_id": manager_id, "team_data": synced["team_data"]})
+                            out_team = TEAM_NAMES.get(out_p.team, "")
+                            in_team = TEAM_NAMES.get(in_p.team, "")
+                            transfer_notification_text = f"🔄 <b>Transfer Uygulandı:</b> 🔴 {out_p.web_name} ({out_team}) ➔ 🟢 {in_p.web_name} ({in_team})"
+                            send_telegram_report(transfer_notification_text)
+                            app_logger.success(f"Updated squad transfer: {out_p.web_name} -> {in_p.web_name}")
+            elif raw_team_data.startswith("{"):
                 parsed_team = json.loads(raw_team_data)
                 if isinstance(parsed_team, dict):
                     if "team_data" in parsed_team:
                         save_synced_team_to_disk(parsed_team)
                     elif "picks" in parsed_team:
                         save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_team})
-            elif len(raw_team_data) > 5 and raw_team_data not in ("/analiz", "/start", "/solve"):
+            elif len(raw_team_data) > 5 and cmd_lower not in ("/analiz", "analiz", "/start", "/solve", "/kaptan", "kaptan", "/sakatlar", "/revir", "/fikstur", "/fiyat"):
                 app_logger.info(f"Processing squad text from Telegram: {raw_team_data[:60]}...")
                 bootstrap = await fpl_client.get_bootstrap_static()
                 td = parse_raw_text_to_team_data(raw_team_data, bootstrap.elements)
@@ -596,6 +659,100 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
             lines.append(f"{status_emoji} <b>{w_name}{team_str}:</b> %{chance if chance is not None else '?'} ({news})")
         lines.append("")
 
+    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+    return "\n".join(lines)
+
+def format_telegram_captain_report(payload: dict) -> str:
+    meta = payload.get("meta", {})
+    gw = meta.get("current_gw", 1)
+    lineup = payload.get("lineup", {})
+    cap = lineup.get("captain", {})
+    vc = lineup.get("vice_captain", {})
+    
+    lines = []
+    lines.append(f"👑 <b>KAPTAN & DİFERANSİYEL RADARI (GW{gw})</b>\n")
+    if cap:
+        c_name = cap.get("name") or cap.get("web_name")
+        c_team = cap.get("team") or TEAM_NAMES.get(cap.get("team_id"), "")
+        c_xp = cap.get("xp_next_gw", 0.0)
+        c_boom = cap.get("boom_index", 0.0)
+        lines.append(f"🥇 <b>1. Kaptan Tercihi:</b> {c_name} ({c_team})")
+        lines.append(f"   • Beklenen Puan: <b>{c_xp:.1f} xP</b> (Kaptanlık: <b>{c_xp*2:.1f} xP</b>)")
+        lines.append(f"   • Patlama İndeksi: <b>{c_boom:.1f}/10</b>\n")
+    if vc:
+        v_name = vc.get("name") or vc.get("web_name")
+        v_team = vc.get("team") or TEAM_NAMES.get(vc.get("team_id"), "")
+        v_xp = vc.get("xp_next_gw", 0.0)
+        lines.append(f"🥈 <b>2. Kaptan (Güvenli):</b> {v_name} ({v_team})")
+        lines.append(f"   • Beklenen Puan: <b>{v_xp:.1f} xP</b>\n")
+    
+    starters = lineup.get("starters", [])
+    diffs = [p for p in starters if p.get("ownership", 100) < 20 and (not cap or p.get("id") != cap.get("id"))]
+    if diffs:
+        diffs.sort(key=lambda x: x.get("xp_next_gw", 0), reverse=True)
+        d = diffs[0]
+        d_name = d.get("name") or d.get("web_name")
+        d_team = d.get("team") or TEAM_NAMES.get(d.get("team_id"), "")
+        d_own = d.get("ownership", 0)
+        d_xp = d.get("xp_next_gw", 0)
+        lines.append(f"🔥 <b>Diferansiyel Adayı (Düşük Sahiplik):</b>")
+        lines.append(f"   • <b>{d_name} ({d_team})</b> - %{d_own:.1f} Sahiplik ({d_xp:.1f} xP)\n")
+        
+    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+    return "\n".join(lines)
+
+def format_telegram_health_report(payload: dict) -> str:
+    health = payload.get("squad_health", [])
+    lines = []
+    lines.append("🏥 <b>SQUAD SAĞLIK & SAKATLIK RADARI</b>\n")
+    if not health:
+        lines.append("✅ <b>Harika Haber:</b> Kadronuzdaki 15 oyuncunun tamamı %100 oynamaya hazır (Available) durumda!\n")
+    else:
+        lines.append("⚠️ <b>Şüpheli veya Sakat Oyuncularınız:</b>")
+        for h in health:
+            w_name = h.get("web_name")
+            t_id = h.get("team") or h.get("team_id")
+            team_str = f" ({TEAM_NAMES.get(t_id)})" if t_id in TEAM_NAMES else ""
+            chance = h.get("chance")
+            news = h.get("news", "Belirsiz")
+            status_emoji = "🔴" if chance == 0 else "🟡"
+            lines.append(f"{status_emoji} <b>{w_name}{team_str}:</b> %{chance if chance is not None else '?'} ({news})")
+        lines.append("\n<i>Diğer tüm oyuncularınız oynamaya hazırdır.</i>\n")
+    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+    return "\n".join(lines)
+
+def format_telegram_fixture_report(payload: dict) -> str:
+    swings = payload.get("fixture_swings", [])
+    lines = []
+    lines.append("📈 <b>FİKSTÜR SALINCAĞI (ÖNÜMÜZDEKİ 5 HAFTA)</b>\n")
+    if isinstance(swings, list) and swings:
+        lines.append("🔄 <b>Önemli Fikstür Dönüşü Yaşayan Takımlar:</b>")
+        for idx, item in enumerate(swings[:5], 1):
+            t_name = item.get("team_name") or TEAM_NAMES.get(item.get("team_id"), f"Team {item.get('team_id')}")
+            near = item.get("near_fdr", 2.5)
+            far = item.get("far_fdr", 3.5)
+            lines.append(f"  {idx}. <b>{t_name}</b> ➔ Yakın Zorluk: <b>{near:.1f}</b> | İleri Zorluk: <b>{far:.1f}</b>")
+        lines.append("")
+    else:
+        lines.append("📊 Önümüzdeki 5 hafta için dengeli bir fikstür dağılımı mevcut.\n")
+    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+    return "\n".join(lines)
+
+def format_telegram_price_report(payload: dict) -> str:
+    alerts = payload.get("price_alerts", [])
+    lines = []
+    lines.append("💰 <b>FİYAT DEĞİŞİM RADARI (BU GECE)</b>\n")
+    if isinstance(alerts, list) and alerts:
+        lines.append("📊 <b>Fiyat Değişim Riski/Fırsatı Olan Oyuncular:</b>")
+        for a in alerts[:6]:
+            p_name = a.get("web_name") or a.get("name", "Oyuncu")
+            change = a.get("type", "artış/düşüş")
+            t_id = a.get("team") or a.get("team_id")
+            team_str = f" ({TEAM_NAMES.get(t_id)})" if t_id in TEAM_NAMES else ""
+            lines.append(f"  • <b>{p_name}{team_str}</b>: {change}")
+        lines.append("")
+    else:
+        lines.append("📈 Bu gece kadronuzu etkileyen kritik bir fiyat değişimi riski bulunmuyor.\n")
     lines.append("🤖 <i>Kraiser61 AI Engine</i>")
     return "\n".join(lines)
 
