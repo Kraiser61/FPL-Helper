@@ -416,6 +416,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             app_logger.warning(f"Could not use cached analysis for {cmd_lower}: {e}")
 
     transfer_notification_text = ""
+    squad_saved = False
     if raw_team_data:
         try:
             from ingestion.local_sync_server import save_synced_team_to_disk, load_synced_team_from_disk
@@ -457,9 +458,16 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                             save_synced_team_to_disk({"manager_id": manager_id, "team_data": synced["team_data"]})
                             out_team = TEAM_NAMES.get(out_p.team, "")
                             in_team = TEAM_NAMES.get(in_p.team, "")
-                            transfer_notification_text = f"🔄 <b>Transfer Uygulandı:</b> 🔴 {out_p.web_name} ({out_team}) ➔ 🟢 {in_p.web_name} ({in_team})"
+                            transfer_notification_text = (
+                                f"🔄 <b>Transfer Başarıyla Uygulandı!</b>\n\n"
+                                f"🔴 <b>Çıkan:</b> {out_p.web_name} ({out_team})\n"
+                                f"🟢 <b>Giren:</b> {in_p.web_name} ({in_team})\n\n"
+                                f"<i>Yeni kadronuzun strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>\n\n"
+                                f"🤖 <i>Kraiser61 AI Engine</i>"
+                            )
                             send_telegram_report(transfer_notification_text)
                             app_logger.success(f"Updated squad transfer: {out_p.web_name} -> {in_p.web_name}")
+                            return {}
             elif raw_team_data.startswith("{"):
                 parsed_team = json.loads(raw_team_data)
                 if isinstance(parsed_team, dict):
@@ -467,15 +475,40 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                         save_synced_team_to_disk(parsed_team)
                     elif "picks" in parsed_team:
                         save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_team})
-            elif len(raw_team_data) > 5 and cmd_lower not in ("/analiz", "analiz", "/start", "/solve", "/kaptan", "kaptan", "/sakatlar", "/revir", "/fikstur", "/fiyat"):
+            elif len(raw_team_data) > 5 and not matches_any(cmd_lower, ["analiz", "analyze", "solve", "taktik", "kadrom", "durum", "strateji", "rapor"]):
                 app_logger.info(f"Processing squad text from Telegram: {raw_team_data[:60]}...")
                 bootstrap = await fpl_client.get_bootstrap_static()
                 td = parse_raw_text_to_team_data(raw_team_data, bootstrap.elements)
-                if td and td.get("picks"):
+                if td and td.get("picks") and len(td["picks"]) >= 11:
                     save_synced_team_to_disk({"manager_id": manager_id, "team_data": td})
+                    squad_saved = True
                     app_logger.success(f"Successfully saved {len(td['picks'])} picks from Telegram message.")
+                    send_telegram_report(f"✅ <b>{len(td['picks'])} Kişilik Kadronuz Başarıyla Kaydedildi!</b>\n\nHaftalık analizinizi almak için <b>/analiz</b> yazabilirsiniz.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+                    return {}
         except Exception as e:
             app_logger.error(f"Failed to parse RAW_TEAM_DATA from environment: {e}")
+
+    # Check if the user specifically asked for full analysis or if it's a scheduled/direct trigger
+    is_analysis_requested = (
+        not raw_team_data or 
+        raw_team_data.startswith("{") or 
+        matches_any(cmd_lower, ["analiz", "analyze", "solve", "taktik", "kadrom", "durum", "strateji", "rapor", "öneri", "oner"])
+    )
+
+    if not is_analysis_requested:
+        unrecog_msg = (
+            "🤖 <b>Mesajınızı tam anlayamadım.</b>\n\n"
+            "Kullanabileceğiniz komutlar:\n"
+            "• <b>/analiz</b> ➔ Tam strateji ve 11 raporu\n"
+            "• <b>/optimal</b> ➔ 100m'lik Rüya Takım\n"
+            "• <b>/kaptan</b> ➔ Kaptan tavsiyesi\n"
+            "• <b>/sakatlar</b> ➔ Sağlık ve sakatlık durumu\n"
+            "• <b>/fikstur</b> ➔ Fikstür salıncağı\n"
+            "• <b>/fiyat</b> ➔ Gece fiyat değişimleri\n"
+            "• <b>/yardim</b> ➔ Detaylı komut rehberi"
+        )
+        send_telegram_report(unrecog_msg)
+        return {}
 
     # Step 0: Scrape live FPL Review projections and build hybrid CSV
     try:
