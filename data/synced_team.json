@@ -3,91 +3,91 @@
   "team_data": {
     "picks": [
       {
-        "element": 352,
+        "element": 109,
         "position": 1,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 350,
+        "element": 387,
         "position": 2,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 499,
+        "element": 388,
         "position": 3,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 358,
+        "element": 113,
         "position": 4,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 4,
+        "element": 367,
         "position": 5,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 389,
+        "element": 12,
         "position": 6,
         "is_captain": false,
-        "is_vice_captain": false
+        "is_vice_captain": true
       },
       {
-        "element": 388,
+        "element": 368,
         "position": 7,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 155,
+        "element": 13,
         "position": 8,
-        "is_captain": true,
-        "is_vice_captain": false
-      },
-      {
-        "element": 399,
-        "position": 9,
-        "is_captain": false,
-        "is_vice_captain": true
-      },
-      {
-        "element": 156,
-        "position": 10,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
         "element": 452,
+        "position": 9,
+        "is_captain": false,
+        "is_vice_captain": false
+      },
+      {
+        "element": 411,
+        "position": 10,
+        "is_captain": true,
+        "is_vice_captain": false
+      },
+      {
+        "element": 346,
         "position": 11,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 426,
+        "element": 497,
         "position": 12,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 136,
+        "element": 32,
         "position": 13,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 25,
+        "element": 417,
         "position": 14,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 346,
+        "element": 194,
         "position": 15,
         "is_captain": false,
         "is_vice_captain": false
