@@ -385,7 +385,14 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
 
     # Fast cached response for lightweight query commands
     cached_path = output_path or (BASE_DIR / "data" / "fpl_analysis.json")
-    if cmd_lower in ("/kaptan", "kaptan", "/sakatlar", "sakatlar", "/revir", "revir", "/fikstur", "fikstur", "/fiyat", "fiyat") and cached_path.exists():
+    if cmd_lower in ("/yardim", "yardim", "/help", "help", "/komutlar", "komutlar"):
+        send_telegram_report(format_telegram_help_report())
+        return {}
+    elif cmd_lower in ("/optimal", "optimal", "/ruyatimi", "ruyatimi", "/wildcard", "wildcard"):
+        optimal_msg = solve_optimal_squad(horizon_gws=5)
+        send_telegram_report(optimal_msg)
+        return {}
+    elif cmd_lower in ("/kaptan", "kaptan", "/sakatlar", "sakatlar", "/revir", "revir", "/fikstur", "fikstur", "/fiyat", "fiyat") and cached_path.exists():
         try:
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
@@ -755,6 +762,70 @@ def format_telegram_price_report(payload: dict) -> str:
         lines.append("📈 Bu gece kadronuzu etkileyen kritik bir fiyat değişimi riski bulunmuyor.\n")
     lines.append("🤖 <i>Kraiser61 AI Engine</i>")
     return "\n".join(lines)
+
+def format_telegram_help_report() -> str:
+    lines = [
+        "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n",
+        "🔹 <b>/analiz</b> ➔ Kayıtlı kadronuzun haftalık tam strateji analizi (Kaptan, İdeal 11, Transfer, Çip, Sakatlıklar).",
+        "🔹 <b>/optimal</b> (veya <b>/ruyatimi</b>) ➔ £100m bütçe ile 590 oyuncu arasından çözülen en ideal 15 kişilik kadro.",
+        "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi yüksek diferansiyel oyuncu.",
+        "🔹 <b>/sakatlar</b> (veya <b>/revir</b>) ➔ Kadronuzdaki şüpheli/sakat oyuncuların son basın toplantısı raporları.",
+        "🔹 <b>/fikstur</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.",
+        "🔹 <b>/fiyat</b> ➔ O gece fiyatı artması veya düşmesi beklenen piyasa alarmları.",
+        "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadrodan tek bir oyuncuyu değiştirir (Örn: <code>/transfer Welbeck yerine Isak</code>).",
+        "🔹 <b>/kadro [15 Oyuncu]</b> ➔ Tüm 15 kişilik kadronuzu sıfırdan kaydeder.",
+        "🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir.\n",
+        "⏰ <i>Otomatik Deadline Alarmları: Maç saatine 4 saat ve 1 saat kala otomatik rapor cebinize gelir.</i>\n",
+        "🤖 <i>Kraiser61 AI Engine</i>"
+    ]
+    return "\n".join(lines)
+
+def solve_optimal_squad(horizon_gws: int = 5) -> str:
+    from core.solver.service import FPLSolverService
+    try:
+        solver = FPLSolverService()
+        results = solver.run_optimization(
+            team_data={"picks": [], "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}},
+            options_override={"preseason": True, "horizon": horizon_gws}
+        )
+        if not results:
+            return "❌ Optimal kadro çözülemedi."
+        r = results[0]
+        df = r.picks[r.picks["week"] == 1]
+        
+        gkps = df[df["pos"] == "GKP"]
+        defs = df[df["pos"] == "DEF"]
+        mids = df[df["pos"] == "MID"]
+        fwds = df[df["pos"] == "FWD"]
+        
+        total_cost = df["buy_price"].sum()
+        total_xp = df[df["lineup"] == 1]["xP"].sum()
+        cap_row = df[df["captain"] == 1]
+        if not cap_row.empty:
+            total_xp += cap_row.iloc[0]["xP"]
+            
+        def fmt_group(sub_df):
+            items = []
+            for _, row in sub_df.iterrows():
+                star = "⭐ " if row.get("captain") == 1 else ""
+                items.append(f"{star}<b>{row['name']}</b> ({row['team']} - £{row['buy_price']:.1f}m)")
+            return ", ".join(items)
+            
+        lines = []
+        lines.append(f"✨ <b>MATEMATİKSEL EN OPTİMAL 15 (WILDCARD / RÜYA TAKIM)</b>")
+        lines.append(f"<i>£100.0m Bütçe Kısıtı | 590 Oyuncu Arasından MIP Çözümü</i>\n")
+        lines.append(f"🧤 <b>KL:</b> {fmt_group(gkps)}")
+        lines.append(f"🛡️ <b>DF:</b> {fmt_group(defs)}")
+        lines.append(f"⚙️ <b>OS:</b> {fmt_group(mids)}")
+        lines.append(f"⚡ <b>FV:</b> {fmt_group(fwds)}\n")
+        lines.append(f"💰 <b>Toplam Harcanan:</b> £{total_cost:.1f}m (Kalan Bütçe: £{100.0 - total_cost:.1f}m)")
+        lines.append(f"📈 <b>11 Kişilik Beklenen Puan (GW1):</b> <b>{total_xp:.1f} xP</b>")
+        lines.append(f"📊 <b>{horizon_gws} Haftalık Toplam xP:</b> <b>{r.total_xp:.1f} xP</b>\n")
+        lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+        return "\n".join(lines)
+    except Exception as e:
+        app_logger.error(f"Optimal squad solve error: {e}")
+        return f"❌ Optimal kadro hesaplanırken hata oluştu: {e}"
 
 def send_telegram_report(report_text: str):
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
