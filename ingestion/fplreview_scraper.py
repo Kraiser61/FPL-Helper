@@ -242,17 +242,63 @@ class FPLReviewLiveScraper:
         return df
 
 
-async def generate_hybrid_fplreview_csv(output_path: Optional[Path] = None, horizon_gws: int = 8) -> Path:
+async def generate_hybrid_fplreview_csv(
+    output_path: Optional[Path] = None, 
+    horizon_gws: int = 8,
+    force_refresh: bool = False,
+    max_age_hours: float = 6.0
+) -> Path:
     """
-    Main Orchestrator:
-    1. Scrapes all available live players from FPL Review web.
-    2. Matches them with FPL API identities.
+    Builds the ultimate hybrid projection CSV:
+    1. Checks if existing fplreview.csv is fresher than max_age_hours (default 6h).
+       If fresh and not force_refresh, skips expensive Playwright browser startup (~20s saved).
+    2. Otherwise, scrapes live FPL Review projections.
     3. Fills all remaining 550+ players and GW5-GW8 projections using our built-in Poisson/Elo engine.
     4. Exports a complete, unified `data/fplreview.csv`.
     """
     if output_path is None:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         output_path = DATA_DIR / "fplreview.csv"
+
+    repo_data_csv = BASE_DIR / "data" / "fplreview.csv"
+
+    # Step 0: Check TTL Cache
+    if not force_refresh:
+        target_file = output_path if output_path.exists() else (repo_data_csv if repo_data_csv.exists() else None)
+        if target_file and target_file.stat().st_size > 10000:
+            import json
+            from datetime import datetime, timezone
+            analysis_json_path = BASE_DIR / "data" / "fpl_analysis.json"
+            is_fresh = False
+            
+            if analysis_json_path.exists():
+                try:
+                    with open(analysis_json_path, "r", encoding="utf-8") as f:
+                        meta = json.load(f).get("meta", {})
+                    gen_time_str = meta.get("generated_at")
+                    if gen_time_str:
+                        gen_dt = datetime.fromisoformat(gen_time_str.replace("Z", "+00:00"))
+                        if gen_dt.tzinfo is None:
+                            gen_dt = gen_dt.replace(tzinfo=timezone.utc)
+                        age_hours = (datetime.now(timezone.utc) - gen_dt).total_seconds() / 3600.0
+                        if age_hours < max_age_hours:
+                            is_fresh = True
+                            logger.info(f"FPL Review hibrit CSV'si güncel ({age_hours:.1f} saat önce üretilmiş, sınır: {max_age_hours:.0f}s). Canlı tarayıcı kazıması atlanıyor (Hızlı mod).")
+                except Exception as e:
+                    logger.debug(f"TTL cache check exception: {e}")
+            
+            if not is_fresh:
+                import time
+                file_age_hours = (time.time() - target_file.stat().st_mtime) / 3600.0
+                if file_age_hours < max_age_hours:
+                    is_fresh = True
+                    logger.info(f"FPL Review CSV dosya yaşı taze ({file_age_hours:.1f} saat önce). Canlı kazıma atlanıyor.")
+
+            if is_fresh:
+                if output_path != target_file and target_file.exists():
+                    import shutil
+                    shutil.copy2(target_file, output_path)
+                return output_path
 
     # Step 1: Generate built-in full baseline projections (600+ players, full horizon)
     from core.solver.projection_generator import generate_builtin_projections

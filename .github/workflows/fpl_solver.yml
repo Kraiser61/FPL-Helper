@@ -29,11 +29,24 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Cache Playwright Chromium Binary
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('requirements-headless.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-chromium-
+
       - name: Install Dependencies & Playwright
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-headless.txt
-          python -m playwright install --with-deps chromium
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
+            python -m playwright install --with-deps chromium
+          else
+            python -m playwright install-deps chromium || true
+          fi
 
       - name: Run FPL Strategy Solver & Generate JSON
         env:
