@@ -700,22 +700,24 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
     lines.append(f"🥈 <b>2. Kaptan:</b> {vc_name}\n")
 
     # 2. Transfer Kararı
-    t_type = action.get("type", "roll_ft")
-    if t_type == "roll_ft":
+    t_ins_list = action.get("transfers_in", [])
+    t_outs_list = action.get("transfers_out", [])
+    gain = action.get("net_xp_gain", 0.0)
+
+    if t_ins_list and t_outs_list:
+        if len(t_ins_list) == 1 and len(t_outs_list) == 1:
+            tin = get_pname(t_ins_list[0])
+            tout = get_pname(t_outs_list[0])
+            lines.append(f"🎯 <b>Transfer:</b> 🔴 {tout} ➔ 🟢 {tin}")
+            lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
+        else:
+            tins = ", ".join([get_pname(p) for p in t_ins_list if get_pname(p)])
+            touts = ", ".join([get_pname(p) for p in t_outs_list if get_pname(p)])
+            lines.append(f"🎯 <b>Çoklu Transfer:</b> 🔴 {touts} ➔ 🟢 {tins}")
+            lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
+    else:
         lines.append("🎯 <b>Transfer:</b> 🛡️ Transferi Pas Geç (Roll FT)")
-        lines.append(f"   <i>Tavsiye: Gelecek hafta için 2 FT biriktir.</i>\n")
-    elif t_type == "single_transfer":
-        tin = get_pname(action.get("transfers_in", [{}])[0])
-        tout = get_pname(action.get("transfers_out", [{}])[0])
-        gain = action.get("net_xp_gain", 0.0)
-        lines.append(f"🎯 <b>Transfer:</b> 🔴 {tout} ➔ 🟢 {tin}")
-        lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
-    elif t_type == "double_transfer":
-        tins = ", ".join([get_pname(p) for p in action.get("transfers_in", []) if get_pname(p)])
-        touts = ", ".join([get_pname(p) for p in action.get("transfers_out", []) if get_pname(p)])
-        gain = action.get("net_xp_gain", 0.0)
-        lines.append(f"🎯 <b>Çift Transfer:</b> 🔴 {touts} ➔ 🟢 {tins}")
-        lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
+        lines.append("   <i>Tavsiye: Gelecek hafta için 2 FT biriktir.</i>\n")
 
     # 3. İdeal 11 & Diziliş
     formation = lineup.get("formation", "3-5-2")
