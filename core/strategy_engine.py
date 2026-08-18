@@ -320,6 +320,15 @@ class StrategyEngine:
         )
 
         best_res = solver_results[0]
+
+        # Synchronize player analyses with FPL Review projected xP from solver picks
+        if best_res and hasattr(best_res, "picks") and not best_res.picks.empty:
+            picks_first_gw = best_res.picks[best_res.picks["week"] == current_gw]
+            for _, row in picks_first_gw.iterrows():
+                pid = int(row["id"])
+                if pid in analyses:
+                    analyses[pid].xp_next_gw = round(float(row["xP"]), 2)
+
         transfer_plan = self.solver_service.extract_transfer_plan(best_res)
 
         first_gw_plan = transfer_plan[0] if transfer_plan else {}
@@ -491,13 +500,16 @@ class StrategyEngine:
         fwd_count = len([p for p in starters if p.element_type == 4])
         formation_str = f"{def_count}-{mid_count}-{fwd_count}"
 
+        opt_11_xp = float(lineup_df["xP"].sum()) if not lineup_df.empty else sum(p.xp_next_gw for p in starters)
+        total_lineup_xp = round(opt_11_xp, 1)
+
         lineup_summary = {
             "formation": formation_str or "3-5-2",
             "captain": cap_p,
             "vice_captain": vcap_p,
             "starters": starters,
             "bench": bench,
-            "total_xp": sum(p.xp_next_gw for p in starters) + (cap_p.xp_next_gw if cap_p else 0.0),
+            "total_xp": total_lineup_xp,
         }
 
         # Captain picks list

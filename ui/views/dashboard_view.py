@@ -527,7 +527,10 @@ class TeamView(QWidget):
         # Bench sorted strictly by user's actual FPL bench order (GK -> Y1 -> Y2 -> Y3)
         bench.sort(key=lambda x: (0 if x.get("pos") == "GKP" else 1, x.get("pick_position", 99)))
 
-        tot_xp = sum(p.get("xp", 0.0) for p in starters)
+        tot_xp = sum(float(p.get("raw_xp", p.get("xp", 0.0))) for p in starters)
+        real_c = next((p for p in starters if p.get("is_captain")), None)
+        if real_c:
+            tot_xp += float(real_c.get("raw_xp", real_c.get("xp", 0.0)))
         self.card_xp.lbl_value.setText(f"{tot_xp:.1f} xP")
 
         # Extract User's Actual Live Captain & Vice-Captain from FPL Picks

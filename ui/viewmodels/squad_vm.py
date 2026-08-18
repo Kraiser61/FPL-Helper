@@ -252,7 +252,8 @@ class SquadViewModel(QObject):
                         picks_map = {row["id"]: row for _, row in best_res.picks[best_res.picks["week"] == first_gw].iterrows()}
                         for p in squad_list:
                             if p["id"] in picks_map:
-                                p["xp"] = round(float(picks_map[p["id"]]["xP"]), 1)
+                                p["raw_xp"] = float(picks_map[p["id"]]["xP"])
+                                p["xp"] = round(p["raw_xp"], 1)
                                 p["blended_score"] = p["xp"]
 
                         def_count = len(lineup_df[lineup_df["type"] == 2])
@@ -266,11 +267,13 @@ class SquadViewModel(QObject):
                         promoted_to_starters = list(opt_starter_ids - user_starter_ids)
                         demoted_to_bench = list(user_starter_ids - opt_starter_ids)
 
+                        cap_bonus = float(picks_map[opt_c_id]["xP"]) if opt_c_id and opt_c_id in picks_map else 0.0
+
                         lineup_dict = {
                             "starting_11": starting_11,
                             "bench_order": bench_order,
                             "formation": formation_str,
-                            "total_xp": round(float(lineup_df["xP"].sum()), 2),
+                            "total_xp": round(float(lineup_df["xP"].sum()) + cap_bonus, 1),
                             "captain_id": opt_c_id,
                             "vice_captain_id": opt_vc_id,
                             "user_captain_id": real_c_id,
