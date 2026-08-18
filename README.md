@@ -48,9 +48,9 @@ Sistem; masaüstü **PySide6 / Qt** arayüzü, bulutta otomatik çalışan **Git
 ### 4. ⚡ Safari Tek Tık Kadro Senkronizasyonu (Bookmarklet)
 * FPL mobil uygulamasında veya Safari'de kadro değiştirdiğinizde, şifreye veya e-postaya gerek kalmadan Safari Yer İmleri'nden tek tıkla `data/synced_team.json` dosyasını GitHub'a aktarır ve çözücüyü anında tetikler.
 
-### 5. 🤖 GitHub Actions Bulut Otomasyonu
-* Her sabah 08:00 ve akşam 20:00'de otomatik olarak çözücüyü koşturur, en güncel transfer tavsiyelerini `data/fpl_analysis.json` olarak yayınlar.
-* Manuel tetikleme (*workflow dispatch*) ve isteğe bağlı Telegram bildirim botu desteği.
+### 5. 🤖 GitHub Actions & Telegram Bulut Otomasyonu
+* Telegram Botu (`/analiz`, `/maclar`, `/kaptan`, `/optimal` vb.) veya manuel tetikleme (*workflow dispatch*) ile isteğe bağlı bulut çözücü ve anlık analiz desteği.
+* Çözülen güncel stratejileri `data/fpl_analysis.json` olarak yayınlar ve Telegram üzerinden zengin rapor olarak iletir.
 
 ---
 

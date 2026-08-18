@@ -24,6 +24,93 @@ TEAM_NAMES = {
     16: "MUN", 17: "NEW", 18: "NFO", 19: "TOT", 20: "SUN"
 }
 
+TEAM_FULL_NAMES = {
+    1: "Arsenal", 2: "Aston Villa", 3: "Bournemouth", 4: "Brentford", 5: "Brighton",
+    6: "Chelsea", 7: "Coventry", 8: "Crystal Palace", 9: "Everton", 10: "Fulham",
+    11: "Hull", 12: "Ipswich", 13: "Leeds", 14: "Liverpool", 15: "Man City",
+    16: "Man Utd", 17: "Newcastle", 18: "Nott'm Forest", 19: "Tottenham", 20: "Sunderland"
+}
+
+def format_kickoff_tr(dt_val) -> tuple[str, str, str]:
+    """
+    Converts UTC datetime string/object to Turkey Time (UTC+3 / TSİ)
+    and returns (day_str, time_str, sort_key).
+    """
+    from datetime import datetime, timezone, timedelta
+    if isinstance(dt_val, str):
+        clean_str = dt_val.replace("Z", "+00:00")
+        try:
+            dt = datetime.fromisoformat(clean_str)
+        except Exception:
+            return ("Tarih Belirsiz", "Saat Belirsiz", "9999")
+    elif isinstance(dt_val, datetime):
+        dt = dt_val
+    else:
+        return ("Tarih Belirsiz", "Saat Belirsiz", "9999")
+    
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    tr_tz = timezone(timedelta(hours=3))
+    dt_tr = dt.astimezone(tr_tz)
+    
+    months_tr = {
+        1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
+        7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"
+    }
+    days_tr = {
+        0: "Pazartesi", 1: "Salı", 2: "Çarşamba", 3: "Perşembe",
+        4: "Cuma", 5: "Cumartesi", 6: "Pazar"
+    }
+    
+    day_str = f"{dt_tr.day} {months_tr.get(dt_tr.month, '')} {days_tr.get(dt_tr.weekday(), '')}"
+    time_str = dt_tr.strftime("%H:%M")
+    sort_key = dt_tr.strftime("%Y-%m-%d %H:%M")
+    return (day_str, time_str, sort_key)
+
+def format_telegram_matches_report(fixtures: list, gw_num: int = 1) -> str:
+    if not fixtures:
+        return f"⚠️ GW{gw_num} için fikstür verisi bulunamadı.\n\n🤖 <i>Kraiser61 AI Engine</i>"
+
+    from collections import defaultdict
+    grouped = defaultdict(list)
+
+    for f in fixtures:
+        ko_str = f.get("kickoff_time")
+        day_str, time_str, sort_key = format_kickoff_tr(ko_str)
+        grouped[day_str].append((sort_key, time_str, f))
+
+    lines = [
+        f"🦁 <b>PREMIER LEAGUE GW{gw_num} MAÇ PROGRAMI (TSİ)</b>\n"
+    ]
+
+    for day_str, match_list in grouped.items():
+        match_list.sort(key=lambda x: x[0])
+        lines.append(f"🗓️ <b>{day_str}</b>")
+        for _, time_str, fix in match_list:
+            h_id = fix.get("team_h")
+            a_id = fix.get("team_a")
+            h_team = fix.get("team_h_name") or TEAM_FULL_NAMES.get(h_id, f"Takım {h_id}")
+            a_team = fix.get("team_a_name") or TEAM_FULL_NAMES.get(a_id, f"Takım {a_id}")
+            
+            finished = fix.get("finished", False)
+            started = fix.get("started", False)
+            h_score = fix.get("team_h_score")
+            a_score = fix.get("team_a_score")
+
+            if finished and h_score is not None and a_score is not None:
+                match_str = f"• <b>{time_str}</b> ➔ {h_team} <b>{h_score} - {a_score}</b> {a_team} (MS)"
+            elif started and h_score is not None and a_score is not None:
+                match_str = f"• <b>{time_str}</b> ➔ {h_team} <b>{h_score} - {a_score}</b> {a_team} (🔴 Canlı)"
+            else:
+                match_str = f"• <b>{time_str}</b> ➔ <b>{h_team}</b> vs <b>{a_team}</b>"
+            
+            lines.append(match_str)
+        lines.append("")
+
+    lines.append("⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>")
+    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+    return "\n".join(lines)
+
 def p_pos(p: PlayerAnalysis) -> str:
     return POS_NAMES.get(p.element_type, "MID") if p else "MID"
 
@@ -466,7 +553,51 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
             return {}
 
-    if matches_any(cmd_lower, ["/fikstur", "/fikstür", "fikstur", "fikstür", "fixture", "kolay maçlar"]):
+    # MATCH SCHEDULE (Detailed weekly fixtures with date and time)
+    if matches_any(cmd_lower, ["/maclar", "/maçlar", "maclar", "maçlar", "/fikstur", "/fikstür", "fikstur", "fikstür", "/program", "program", "maç programı", "mac programi", "haftanın maçları", "haftanin maclari", "bu haftanın maçları"]):
+        if cached_path.exists():
+            with open(cached_path, "r", encoding="utf-8") as f:
+                cached_data = json.load(f)
+            if cached_data.get("matches_report"):
+                send_telegram_report(cached_data["matches_report"])
+                return cached_data
+            elif cached_data.get("fixtures"):
+                gw_val = cached_data.get("meta", {}).get("current_gw", 1)
+                rep = format_telegram_matches_report(cached_data["fixtures"], gw_val)
+                send_telegram_report(rep)
+                return cached_data
+        
+        # Fallback to direct live fetch
+        try:
+            bootstrap = await fpl_client.get_bootstrap_static()
+            active_event = next((e for e in bootstrap.events if e.is_current or e.is_next or not e.finished), None)
+            gw_val = active_event.id if active_event else 1
+            raw_fixtures = await fpl_client.get_fixtures(event_id=gw_val)
+            fix_list = []
+            for fix in raw_fixtures:
+                fix_list.append({
+                    "id": fix.id, "event": fix.event,
+                    "team_h": fix.team_h,
+                    "team_h_name": TEAM_FULL_NAMES.get(fix.team_h, f"Takım {fix.team_h}"),
+                    "team_h_short": TEAM_NAMES.get(fix.team_h, ""),
+                    "team_a": fix.team_a,
+                    "team_a_name": TEAM_FULL_NAMES.get(fix.team_a, f"Takım {fix.team_a}"),
+                    "team_a_short": TEAM_NAMES.get(fix.team_a, ""),
+                    "team_h_difficulty": fix.team_h_difficulty, "team_a_difficulty": fix.team_a_difficulty,
+                    "team_h_score": fix.team_h_score, "team_a_score": fix.team_a_score,
+                    "finished": fix.finished, "started": fix.started,
+                    "kickoff_time": fix.kickoff_time.isoformat() if fix.kickoff_time else None
+                })
+            rep = format_telegram_matches_report(fix_list, gw_val)
+            send_telegram_report(rep)
+            return {"matches_report": rep, "fixtures": fix_list}
+        except Exception as e:
+            app_logger.error(f"Fikstür çekilirken hata: {e}")
+            send_telegram_report(f"❌ Fikstür maç takvimi alınamadı: {e}\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            return {}
+
+    # FIXTURE SWING RADAR (Difficulty swing analysis)
+    if matches_any(cmd_lower, ["/salincak", "/kolaymaclar", "/kolayfikstur", "/swings", "salıncak", "salincak", "kolay fikstür", "kolay fikstur"]):
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
@@ -663,6 +794,32 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         "price_alerts": bundle.price_alerts,
         "fixture_swings": bundle.fixture_swings,
     }
+
+    # Fetch and attach match fixtures for the active gameweek
+    gw_fixtures = []
+    matches_report = ""
+    try:
+        raw_fixtures = await fpl_client.get_fixtures(event_id=bundle.current_gw)
+        for fix in raw_fixtures:
+            gw_fixtures.append({
+                "id": fix.id, "event": fix.event,
+                "team_h": fix.team_h,
+                "team_h_name": TEAM_FULL_NAMES.get(fix.team_h, f"Takım {fix.team_h}"),
+                "team_h_short": TEAM_NAMES.get(fix.team_h, ""),
+                "team_a": fix.team_a,
+                "team_a_name": TEAM_FULL_NAMES.get(fix.team_a, f"Takım {fix.team_a}"),
+                "team_a_short": TEAM_NAMES.get(fix.team_a, ""),
+                "team_h_difficulty": fix.team_h_difficulty, "team_a_difficulty": fix.team_a_difficulty,
+                "team_h_score": fix.team_h_score, "team_a_score": fix.team_a_score,
+                "finished": fix.finished, "started": fix.started,
+                "kickoff_time": fix.kickoff_time.isoformat() if fix.kickoff_time else None
+            })
+        matches_report = format_telegram_matches_report(gw_fixtures, bundle.current_gw)
+    except Exception as e:
+        app_logger.warning(f"Fikstür maç listesi oluşturulamadı: {e}")
+
+    payload["fixtures"] = gw_fixtures
+    payload["matches_report"] = matches_report
 
     # Format rich Telegram message
     tg_report = format_telegram_report(payload)
@@ -881,15 +1038,15 @@ def format_telegram_help_report() -> str:
     lines = [
         "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n",
         "🔹 <b>/analiz</b> ➔ Kayıtlı kadronuzun haftalık tam strateji analizi (Kaptan, İdeal 11, Transfer, Çip, Sakatlıklar).",
+        "🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve başlama saatleri (TSİ).",
         "🔹 <b>/optimal</b> (veya <b>/ruyatimi</b>) ➔ £100m bütçe ile 590 oyuncu arasından çözülen en ideal 15 kişilik kadro.",
-        "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi yüksek diferansiyel oyuncu.",
-        "🔹 <b>/sakatlar</b> (veya <b>/revir</b>) ➔ Kadronuzdaki şüpheli/sakat oyuncuların son basın toplantısı raporları.",
-        "🔹 <b>/fikstur</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.",
+        "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.",
+        "🔹 <b>/sakatlar</b> (veya <b>/revir</b>) ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık durumu.",
+        "🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.",
         "🔹 <b>/fiyat</b> ➔ O gece fiyatı artması veya düşmesi beklenen piyasa alarmları.",
         "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadrodan tek bir oyuncuyu değiştirir (Örn: <code>/transfer Welbeck yerine Isak</code>).",
         "🔹 <b>/kadro [15 Oyuncu]</b> ➔ Tüm 15 kişilik kadronuzu sıfırdan kaydeder.",
         "🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir.\n",
-        "⏰ <i>Otomatik Deadline Alarmları: Maç saatine 4 saat ve 1 saat kala otomatik rapor cebinize gelir.</i>\n",
         "🤖 <i>Kraiser61 AI Engine</i>"
     ]
     return "\n".join(lines)
@@ -965,44 +1122,9 @@ def send_telegram_report(report_text: str):
         app_logger.error(f"Failed to send Telegram message: {e}")
     return False
 
-def check_deadline_window() -> tuple[bool, str]:
-    """
-    Checks if the upcoming GW deadline is in ~4h or ~1h window.
-    Returns (should_run, headline_label).
-    """
-    import urllib.request
-    from datetime import datetime, timezone
-    try:
-        req = urllib.request.Request("https://fantasy.premierleague.com/api/bootstrap-static/", headers={"User-Agent": "FPL-Deadline-Checker"})
-        data = json.loads(urllib.request.urlopen(req, timeout=10).read())
-        events = data.get("events", [])
-        now_epoch = datetime.now(timezone.utc).timestamp()
-        next_event = next((e for e in events if e.get("is_next") or not e.get("finished")), None)
-        if next_event:
-            deadline_epoch = next_event.get("deadline_time_epoch")
-            hours_left = (deadline_epoch - now_epoch) / 3600.0
-            gw_name = next_event.get("name", "Gameweek")
-            
-            if 3.0 <= hours_left < 4.5:
-                return True, f"⏰ <b>DEADLINE'A 4 SAAT KALDI ({gw_name})</b>"
-            elif 0.2 <= hours_left < 1.5:
-                return True, f"🚨 <b>SON 1 SAAT - NİHAİ KADRO RAPORU ({gw_name})</b>"
-            else:
-                app_logger.info(f"{gw_name} deadline'ına {hours_left:.1f} saat var. Otomatik bildirim penceresi (4h / 1h) dışında. İşlem atlanıyor.")
-                return False, ""
-    except Exception as e:
-        app_logger.warning(f"Could not check deadline window: {e}")
-    return False, ""
-
 if __name__ == "__main__":
     if sys.stdout.encoding != 'utf-8':
         sys.stdout.reconfigure(encoding='utf-8')
-    
-    # Check if scheduled deadline check
-    if "--check-deadline" in sys.argv:
-        should_run, deadline_label = check_deadline_window()
-        if not should_run:
-            sys.exit(0)
     
     mgr_id = DEFAULT_MANAGER_ID
     for arg in sys.argv[1:]:

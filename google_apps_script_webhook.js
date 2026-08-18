@@ -15,6 +15,13 @@ const TEAM_NAMES = {
   16: "MUN", 17: "NEW", 18: "NFO", 19: "TOT", 20: "SUN"
 };
 
+const TEAM_FULL_NAMES = {
+  1: "Arsenal", 2: "Aston Villa", 3: "Bournemouth", 4: "Brentford", 5: "Brighton",
+  6: "Chelsea", 7: "Coventry", 8: "Crystal Palace", 9: "Everton", 10: "Fulham",
+  11: "Hull", 12: "Ipswich", 13: "Leeds", 14: "Liverpool", 15: "Man City",
+  16: "Man Utd", 17: "Newcastle", 18: "Nott'm Forest", 19: "Tottenham", 20: "Sunderland"
+};
+
 function doPost(e) {
   try {
     const update = JSON.parse(e.postData.contents);
@@ -25,12 +32,22 @@ function doPost(e) {
     const textLower = text.toLowerCase();
 
     // 1. YARDIM / HELP (⚡ 0.1 sn)
-    if (textLower === "/yardim" || textLower === "/help" || textLower === "yardim" || textLower === "help" || textLower === "komutlar") {
+    if (textLower === "/yardim" || textLower === "/help" || textLower === "yardim" || textLower === "yardım" || textLower === "help" || textLower === "komutlar") {
       sendTelegramMessage(chatId, getHelpText());
       return HtmlService.createHtmlOutput("OK");
     }
 
     // 2. ANLIK ÖNBELLEK KOMUTLARI (⚡ 0.3 sn - GitHub Actions çalıştırmaz)
+    if (textLower === "/maclar" || textLower === "/maçlar" || textLower === "maclar" || textLower === "maçlar" || textLower === "/fikstur" || textLower === "/fikstür" || textLower === "fikstur" || textLower === "fikstür" || textLower === "/program" || textLower === "program" || textLower === "maç programı" || textLower === "mac programi" || textLower === "haftanın maçları" || textLower === "haftanin maclari" || textLower === "/haftalikmaclar") {
+      const data = fetchAnalysisJson();
+      if (data && (data.matches_report || data.fixtures)) {
+        sendTelegramMessage(chatId, formatMatchesReport(data));
+      } else {
+        sendTelegramMessage(chatId, "⚠️ Fikstür verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırarak verileri güncelleyin.");
+      }
+      return HtmlService.createHtmlOutput("OK");
+    }
+
     if (textLower === "/kaptan" || textLower === "kaptan" || textLower === "c kim") {
       const data = fetchAnalysisJson();
       if (data && data.lineup) {
@@ -51,7 +68,7 @@ function doPost(e) {
       return HtmlService.createHtmlOutput("OK");
     }
 
-    if (textLower === "/fikstur" || textLower === "/fikstür" || textLower === "fikstur" || textLower === "fikstür" || textLower === "kolay maçlar") {
+    if (textLower === "/salincak" || textLower === "/kolaymaclar" || textLower === "/kolayfikstur" || textLower === "salıncak" || textLower === "salincak" || textLower === "kolay maçlar" || textLower === "kolay fikstür") {
       const data = fetchAnalysisJson();
       if (data && data.fixture_swings) {
         sendTelegramMessage(chatId, formatFixtureReport(data));
@@ -177,10 +194,11 @@ function getHelpText() {
   return [
     "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n",
     "🔹 <b>/analiz</b> ➔ Tam strateji ve 11 raporu (Kaptan, Transfer, Çip, Diziliş).",
+    "🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve saatleri (TSİ).",
     "🔹 <b>/optimal</b> ➔ £100m bütçe ile en ideal 15 kişilik Rüya Takım.",
     "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.",
     "🔹 <b>/sakatlar</b> ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık raporu.",
-    "🔹 <b>/fikstur</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan takımlar.",
+    "🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan takımlar.",
     "🔹 <b>/fiyat</b> ➔ Gece fiyatı artması/düşmesi beklenen oyuncu alarmları.",
     "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadroda oyuncu değiştirir.",
     "🔹 <b>/yardim</b> ➔ Bu komut listesini getirir.\n",
@@ -277,6 +295,72 @@ function formatPriceReport(payload) {
   } else {
     lines.push("📈 Bu gece kadronuzu etkileyen kritik bir fiyat değişimi riski bulunmuyor.\n");
   }
+  lines.push("🤖 <i>Kraiser61 AI Engine</i>");
+  return lines.join("\n");
+}
+
+function formatMatchesReport(payload) {
+  if (payload.matches_report) {
+    return payload.matches_report;
+  }
+  
+  const fixtures = payload.fixtures || [];
+  const meta = payload.meta || {};
+  const gw = meta.current_gw || 1;
+  
+  if (fixtures.length === 0) {
+    return `⚠️ GW${gw} için fikstür verisi bulunamadı.\n\n🤖 <i>Kraiser61 AI Engine</i>`;
+  }
+  
+  const MONTHS_TR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+  const DAYS_TR = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+  
+  const grouped = {};
+  for (const f of fixtures) {
+    if (!f.kickoff_time) continue;
+    const d = new Date(f.kickoff_time);
+    const trDate = new Date(d.getTime() + (3 * 60 * 60 * 1000));
+    
+    const dayName = DAYS_TR[trDate.getUTCDay()];
+    const dayNum = trDate.getUTCDate();
+    const monthName = MONTHS_TR[trDate.getUTCMonth()];
+    const dayKey = `${dayNum} ${monthName} ${dayName}`;
+    
+    const hours = String(trDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(trDate.getUTCMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+    
+    if (!grouped[dayKey]) {
+      grouped[dayKey] = [];
+    }
+    grouped[dayKey].push({
+      time: timeStr,
+      fixture: f
+    });
+  }
+  
+  let lines = [];
+  lines.push(`🦁 <b>PREMIER LEAGUE GW${gw} MAÇ PROGRAMI (TSİ)</b>\n`);
+  
+  for (const [dayKey, list] of Object.entries(grouped)) {
+    lines.push(`🗓️ <b>${dayKey}</b>`);
+    for (const item of list) {
+      const f = item.fixture;
+      const hTeam = f.team_h_name || TEAM_FULL_NAMES[f.team_h] || `Takım ${f.team_h}`;
+      const aTeam = f.team_a_name || TEAM_FULL_NAMES[f.team_a] || `Takım ${f.team_a}`;
+      
+      if (f.finished && f.team_h_score !== null && f.team_a_score !== null) {
+        lines.push(`• <b>${item.time}</b> ➔ ${hTeam} <b>${f.team_h_score} - ${f.team_a_score}</b> ${aTeam} (MS)`);
+      } else if (f.started && f.team_h_score !== null && f.team_a_score !== null) {
+        lines.push(`• <b>${item.time}</b> ➔ ${hTeam} <b>${f.team_h_score} - ${f.team_a_score}</b> ${aTeam} (🔴 Canlı)`);
+      } else {
+        lines.push(`• <b>${item.time}</b> ➔ <b>${hTeam}</b> vs <b>${aTeam}</b>`);
+      }
+    }
+    lines.push("");
+  }
+  
+  lines.push("⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>");
   lines.push("🤖 <i>Kraiser61 AI Engine</i>");
   return lines.join("\n");
 }
