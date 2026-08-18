@@ -383,29 +383,33 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     raw_team_data = os.environ.get("RAW_TEAM_DATA", "").strip()
     cmd_lower = raw_team_data.lower()
 
-    # Fast cached response for lightweight query commands
-    cached_path = output_path or (BASE_DIR / "data" / "fpl_analysis.json")
-    if cmd_lower in ("/yardim", "yardim", "/help", "help", "/komutlar", "komutlar"):
+    # Smart NLP intent matching for Turkish & English freeform sentences
+    def matches_any(text: str, keywords: list) -> bool:
+        return any(k in text for k in keywords)
+
+    if matches_any(cmd_lower, ["yardim", "yardım", "help", "komut", "ne yapabilirsin", "nasıl kullanılır"]):
         send_telegram_report(format_telegram_help_report())
         return {}
-    elif cmd_lower in ("/optimal", "optimal", "/ruyatimi", "ruyatimi", "/wildcard", "wildcard"):
+    
+    if matches_any(cmd_lower, ["optimal", "rüya", "ruya", "wildcard", "en iyi 15", "ideal kadro", "dream team"]):
         optimal_msg = solve_optimal_squad(horizon_gws=5)
         send_telegram_report(optimal_msg)
         return {}
-    elif cmd_lower in ("/kaptan", "kaptan", "/sakatlar", "sakatlar", "/revir", "revir", "/fikstur", "fikstur", "/fiyat", "fiyat") and cached_path.exists():
+
+    if cached_path.exists():
         try:
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
-            if cmd_lower in ("/kaptan", "kaptan"):
+            if matches_any(cmd_lower, ["kaptan", "captain", "c kim", "kime verelim"]):
                 send_telegram_report(format_telegram_captain_report(cached_data))
                 return cached_data
-            elif cmd_lower in ("/sakatlar", "sakatlar", "/revir", "revir"):
+            elif matches_any(cmd_lower, ["sakat", "revir", "sağlık", "saglik", "injury", "oynar mı"]):
                 send_telegram_report(format_telegram_health_report(cached_data))
                 return cached_data
-            elif cmd_lower in ("/fikstur", "fikstur"):
+            elif matches_any(cmd_lower, ["fikstür", "fikstur", "fixture", "schedule", "kolay maçlar"]):
                 send_telegram_report(format_telegram_fixture_report(cached_data))
                 return cached_data
-            elif cmd_lower in ("/fiyat", "fiyat"):
+            elif matches_any(cmd_lower, ["fiyat", "price", "zam", "düşüş", "artış"]):
                 send_telegram_report(format_telegram_price_report(cached_data))
                 return cached_data
         except Exception as e:
