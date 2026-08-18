@@ -3,7 +3,7 @@
     "manager_id": 3842372,
     "current_gw": 1,
     "is_preseason": true,
-    "generated_at": "2026-08-18 12:36:34",
+    "generated_at": "2026-08-18 12:38:24",
     "free_transfers": 99,
     "bank": 0.0,
     "chips_status": "4/4 Hazır (Wildcard, Free Hit, Bench Boost, Triple Captain)",
@@ -64,7 +64,7 @@
     ],
     "net_xp_gain": 37.2,
     "hit_cost": 0,
-    "budget_remaining": 2.5,
+    "budget_remaining": 2.4999999999999876,
     "summary_reason": "HiGHS optimizasyonu: Saka ──► Enzo hamlesi ile takım puan beklentisi artırıldı.",
     "reasons": [
       "📊 <b>Puan Beklentisi:</b> Önerilen hamle Enzo ile bu hafta net daha yüksek tavan sunuyor.",
