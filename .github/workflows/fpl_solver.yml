@@ -4,17 +4,11 @@ on:
   workflow_dispatch: # Manuel tetikleme (Telefondan, Web'den veya API'den)
     inputs:
       team_data:
-        description: 'Raw FPL my-team JSON from mobile Safari'
+        description: 'Raw FPL my-team JSON or Telegram command'
         required: false
         default: ''
   repository_dispatch: # Google Apps Script / Telegram Webhook tetiklemesi
     types: [telegram-trigger, solve, analyze]
-  schedule:
-    # Saat başı FPL resmi deadline saatini kontrol eder (4 saat ve 1 saat kala otomatik çözer)
-    - cron: '0 * * * *'
-  push:
-    branches:
-      - main
 
 permissions:
   contents: write
@@ -50,7 +44,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           RAW_TEAM_DATA: ${{ github.event.inputs.team_data || github.event.client_payload.team_data }}
         run: |
-          python export_fpl_analysis.py ${{ github.event_name == 'schedule' && '--check-deadline' || '' }}
+          python export_fpl_analysis.py
 
       - name: Commit and Push Analysis Data
         run: |
@@ -64,28 +58,3 @@ jobs:
             git pull --rebase origin main || true
             git push origin main
           fi
-
-
-      - name: Send Telegram Notification (Optional)
-        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          python -c '
-          import json, os, urllib.request, urllib.parse
-          token = os.environ.get("TELEGRAM_BOT_TOKEN")
-          chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-          if token and chat_id and os.path.exists("data/fpl_analysis.json"):
-              with open("data/fpl_analysis.json", "r", encoding="utf-8") as f:
-                  data = json.load(f)
-              msg = data.get("summary_text", "FPL Analizi güncellendi.")
-              url = f"https://api.telegram.org/bot{token}/sendMessage"
-              payload = urllib.parse.urlencode({"chat_id": chat_id, "text": msg}).encode("utf-8")
-              req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/x-www-form-urlencoded"})
-              try:
-                  urllib.request.urlopen(req)
-                  print("Telegram bildirimi başarıyla gönderildi.")
-              except Exception as e:
-                  print(f"Telegram gönderim hatası: {e}")
-          '

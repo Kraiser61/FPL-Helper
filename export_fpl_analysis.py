@@ -372,6 +372,12 @@ def format_html_health_radar(bundle: DecisionBundle) -> str:
 async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_gws: int = 8, output_path: Path = None):
     app_logger.info(f"Starting headless analysis for Manager {manager_id}...")
 
+    data_dir = BASE_DIR / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    if output_path is None:
+        output_path = data_dir / "fpl_analysis.json"
+    cached_path = output_path
+
     # Ensure SQLite database schema and tables (e.g. api_cache_meta) are initialized
     from data.database import db_manager
     db_manager.init_db()
@@ -383,11 +389,22 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     raw_team_data = os.environ.get("RAW_TEAM_DATA", "").strip()
     cmd_lower = raw_team_data.lower()
 
-    # Smart NLP intent matching for Turkish & English freeform sentences
+    # Exact and keyword intent matching helper
     def matches_any(text: str, keywords: list) -> bool:
         return any(k in text for k in keywords)
 
-    # Check if user wants to adopt the Dream Team as their active squad:
+    # 1. HELP / YARDIM COMMAND
+    if matches_any(cmd_lower, ["/yardim", "/help", "yardim", "yardım", "help", "komutlar", "komut"]):
+        send_telegram_report(format_telegram_help_report())
+        return {}
+
+    # 2. DREAM TEAM / OPTIMAL WILDCARD SOLVER
+    if matches_any(cmd_lower, ["/optimal", "/ruyatimi", "/ruya", "/rüya", "optimal", "rüya takım", "ruya takim", "wildcard", "ideal kadro", "dream team"]):
+        optimal_msg = solve_optimal_squad(horizon_gws=5)
+        send_telegram_report(optimal_msg)
+        return {}
+
+    # 3. ADOPT DREAM TEAM AS ACTIVE SQUAD
     if matches_any(cmd_lower, ["rüya takım ile değiştir", "ruya takim ile degistir", "kadromu rüya", "kadromu ruya", "kadroyu rüya", "kadroyu ruya", "kadroyu optimal", "kadromu optimal", "rüya kadroyu yaptım", "ruya kadroyu yaptim", "rüya takımı kurdum", "ruya takimi kurdum", "kadrom rüya takım", "kadrom ruya takim"]):
         from core.solver.service import FPLSolverService
         from ingestion.local_sync_server import save_synced_team_to_disk
@@ -406,42 +423,55 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             msg = (
                 "✅ <b>Kadronuz Rüya Takım (Optimal 15) ile Başarıyla Güncellendi!</b>\n\n"
                 f"📋 <b>Yeni 15 Kişilik Kadronuz:</b>\n{', '.join(names)}\n\n"
-                "<i>Bu 15 oyuncu artık sizin resmi kayıtlı kadronuzdur. Strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>\n\n"
+                "<i>Yeni kadronuzun strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>\n\n"
                 "🤖 <i>Kraiser61 AI Engine</i>"
             )
             send_telegram_report(msg)
             return {}
 
-    if matches_any(cmd_lower, ["yardim", "yardım", "help", "komut", "ne yapabilirsin", "nasıl kullanılır"]):
-        send_telegram_report(format_telegram_help_report())
-        return {}
-    
-    if matches_any(cmd_lower, ["optimal", "rüya", "ruya", "wildcard", "en iyi 15", "ideal kadro", "dream team"]):
-        optimal_msg = solve_optimal_squad(horizon_gws=5)
-        send_telegram_report(optimal_msg)
-        return {}
-
-    if cached_path.exists():
-        try:
+    # 4. INSTANT CACHED COMMANDS (Captain, Health, Fixtures, Prices)
+    if matches_any(cmd_lower, ["/kaptan", "kaptan", "captain", "c kim", "kime verelim"]):
+        if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
-            if matches_any(cmd_lower, ["kaptan", "captain", "c kim", "kime verelim"]):
-                send_telegram_report(format_telegram_captain_report(cached_data))
-                return cached_data
-            elif matches_any(cmd_lower, ["sakat", "revir", "sağlık", "saglik", "injury", "oynar mı"]):
-                send_telegram_report(format_telegram_health_report(cached_data))
-                return cached_data
-            elif matches_any(cmd_lower, ["fikstür", "fikstur", "fixture", "schedule", "kolay maçlar"]):
-                send_telegram_report(format_telegram_fixture_report(cached_data))
-                return cached_data
-            elif matches_any(cmd_lower, ["fiyat", "price", "zam", "düşüş", "artış"]):
-                send_telegram_report(format_telegram_price_report(cached_data))
-                return cached_data
-        except Exception as e:
-            app_logger.warning(f"Could not use cached analysis for {cmd_lower}: {e}")
+            send_telegram_report(format_telegram_captain_report(cached_data))
+            return cached_data
+        else:
+            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            return {}
 
+    if matches_any(cmd_lower, ["/sakatlar", "/revir", "sakatlar", "revir", "sağlık", "saglik", "injury"]):
+        if cached_path.exists():
+            with open(cached_path, "r", encoding="utf-8") as f:
+                cached_data = json.load(f)
+            send_telegram_report(format_telegram_health_report(cached_data))
+            return cached_data
+        else:
+            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            return {}
+
+    if matches_any(cmd_lower, ["/fikstur", "/fikstür", "fikstur", "fikstür", "fixture", "kolay maçlar"]):
+        if cached_path.exists():
+            with open(cached_path, "r", encoding="utf-8") as f:
+                cached_data = json.load(f)
+            send_telegram_report(format_telegram_fixture_report(cached_data))
+            return cached_data
+        else:
+            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            return {}
+
+    if matches_any(cmd_lower, ["/fiyat", "fiyat", "fiyatlar", "price", "zam", "düşüş", "artış"]):
+        if cached_path.exists():
+            with open(cached_path, "r", encoding="utf-8") as f:
+                cached_data = json.load(f)
+            send_telegram_report(format_telegram_price_report(cached_data))
+            return cached_data
+        else:
+            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            return {}
+
+    # 5. SQUAD & TRANSFER MANIPULATION
     transfer_notification_text = ""
-    squad_saved = False
     if raw_team_data:
         try:
             from ingestion.local_sync_server import save_synced_team_to_disk, load_synced_team_from_disk
@@ -449,7 +479,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             import re
             from fuzzywuzzy import fuzz
             
-            # Single transfer command: e.g. "/transfer Welbeck yerine Isak" or "/sat Haaland /al Watkins"
+            # Single transfer command: e.g. "/transfer Welbeck yerine Isak" or "transfer Haaland yerine Watkins"
             if ("yerine" in cmd_lower or "/sat" in cmd_lower or "->" in cmd_lower or cmd_lower.startswith("/transfer") or cmd_lower.startswith("transfer")):
                 synced = load_synced_team_from_disk()
                 if synced and "team_data" in synced and "picks" in synced["team_data"]:
@@ -506,18 +536,17 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 td = parse_raw_text_to_team_data(raw_team_data, bootstrap.elements)
                 if td and td.get("picks") and len(td["picks"]) >= 11:
                     save_synced_team_to_disk({"manager_id": manager_id, "team_data": td})
-                    squad_saved = True
                     app_logger.success(f"Successfully saved {len(td['picks'])} picks from Telegram message.")
                     send_telegram_report(f"✅ <b>{len(td['picks'])} Kişilik Kadronuz Başarıyla Kaydedildi!</b>\n\nHaftalık analizinizi almak için <b>/analiz</b> yazabilirsiniz.\n\n🤖 <i>Kraiser61 AI Engine</i>")
                     return {}
         except Exception as e:
             app_logger.error(f"Failed to parse RAW_TEAM_DATA from environment: {e}")
 
-    # Check if the user specifically asked for full analysis or if it's a scheduled/direct trigger
+    # 6. FULL ANALYSIS GATE
     is_analysis_requested = (
         not raw_team_data or 
         raw_team_data.startswith("{") or 
-        matches_any(cmd_lower, ["analiz", "analyze", "solve", "taktik", "kadrom", "durum", "strateji", "rapor", "öneri", "oner"])
+        matches_any(cmd_lower, ["/analiz", "analiz", "analyze", "solve", "taktik", "kadrom", "durum", "strateji", "rapor"])
     )
 
     if not is_analysis_requested:
