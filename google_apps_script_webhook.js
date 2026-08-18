@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // 🦁 FPL HELPER - GOOGLE APPS SCRIPT TELEGRAM BOT WEBHOOK ROUTER
 // ============================================================================
 // Bu kodu script.google.com üzerindeki projenize yapıştırıp "Yeni Dağıtım (New Deployment)"
@@ -145,7 +145,19 @@ function triggerGitHubActions(teamDataText) {
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   };
-  UrlFetchApp.fetch(url, options);
+  const res = UrlFetchApp.fetch(url, options);
+  Logger.log("GitHub Dispatch Response Code: " + res.getResponseCode());
+  if (res.getResponseCode() !== 204) {
+    Logger.log("GitHub Dispatch Error: " + res.getContentText());
+  }
+  return res;
+}
+
+// Test fonksiyonu: GitHub bağlantısını doğrudan doğrulamak için bunu Apps Script'ten çalıştırabilirsiniz.
+function testGitHubDispatch() {
+  const res = triggerGitHubActions("/analiz");
+  Logger.log("Test HTTP Response Code: " + res.getResponseCode());
+  Logger.log("Test Response Body: " + res.getContentText());
 }
 
 function fetchAnalysisJson() {
