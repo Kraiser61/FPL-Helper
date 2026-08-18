@@ -509,20 +509,28 @@ class TransferView(QWidget):
                 self.c1_reasons_layout.addWidget(lbl_r)
 
             # Roll evaluation note inside transfer box
-            lbl_roll = QLabel(f"<span style='color: {COLORS['accent_gold']}; font-weight: 900;'>•</span> &nbsp;<b>Transfer Hakkı Kararı:</b> Bu transfer hamlesi net +{net_gain:.1f} xP kazandırdığı için hakkı devretmek yerine bu hafta transfer yapmak daha karlı.")
+            if bundle.is_preseason or bundle.current_gw == 1:
+                lbl_roll = QLabel(f"<span style='color: {COLORS['accent_gold']}; font-weight: 900;'>•</span> &nbsp;<b>Sezon Öncesi Değişiklik:</b> Sezon başlamadan önce sınırsız transfer hakkınız bulunmaktadır; bu hamle kadronun puan tavanını artırmaktadır.")
+            else:
+                lbl_roll = QLabel(f"<span style='color: {COLORS['accent_gold']}; font-weight: 900;'>•</span> &nbsp;<b>Transfer Hakkı Kararı:</b> Bu transfer hamlesi net +{net_gain:.1f} xP kazandırdığı için hakkı devretmek yerine bu hafta transfer yapmak daha karlı.")
             lbl_roll.setTextFormat(Qt.RichText)
             lbl_roll.setStyleSheet(f"color: {COLORS['text_primary']}; font-size: 13px; font-weight: 500; background: transparent; border: none; padding: 2px 0px;")
             lbl_roll.setWordWrap(True)
             self.c1_reasons_layout.addWidget(lbl_roll)
         else:
-            self.panel_transfer.set_badge("🛡️ TRANSFER HAKKINI SAKLA (DEVRET)", COLORS['surface_elevated'], COLORS['accent_info'])
-            self.lbl_c1_action.setText(f"<span style='color: {COLORS['accent_pitch']}; font-weight: 900;'>✓ Kadronuz Dengeli ve Hazır:</span> Bu hafta transfer hakkınızı saklamanız (devretmeniz) önerilir.")
-            self.lbl_c1_stats.setText(f"<b>Kadro Durumu:</b> Optimum & Dengeli &nbsp;|&nbsp; <b>Gelecek Hafta:</b> 2 Transfer Hakkı (2 FT) &nbsp;|&nbsp; <b>Banka:</b> £{bundle.bank_amount:.1f}m")
-            
+            if bundle.is_preseason or bundle.current_gw == 1:
+                self.panel_transfer.set_badge("🛡️ KADROYU KORU (DEĞİŞİKLİK YOK)", COLORS['surface_elevated'], COLORS['accent_info'])
+                self.lbl_c1_action.setText(f"<span style='color: {COLORS['accent_pitch']}; font-weight: 900;'>✓ Kadronuz Dengeli ve Hazır:</span> 1. haftaya bu 15 kişilik kadroyla başlamanız önerilir.")
+                self.lbl_c1_stats.setText(f"<b>Kadro Durumu:</b> Optimum & Dengeli &nbsp;|&nbsp; <b>GW2 Başlangıcı:</b> 1 Transfer Hakkı (1 FT) &nbsp;|&nbsp; <b>Banka:</b> £{bundle.bank_amount:.1f}m")
+            else:
+                next_fts = min(5, (bundle.free_transfers_count or 1) + 1)
+                self.panel_transfer.set_badge("🛡️ TRANSFER HAKKINI SAKLA (DEVRET)", COLORS['surface_elevated'], COLORS['accent_info'])
+                self.lbl_c1_action.setText(f"<span style='color: {COLORS['accent_pitch']}; font-weight: 900;'>✓ Kadronuz Dengeli ve Hazır:</span> Bu hafta transfer hakkınızı saklamanız (devretmeniz) önerilir.")
+                self.lbl_c1_stats.setText(f"<b>Kadro Durumu:</b> Optimum & Dengeli &nbsp;|&nbsp; <b>Gelecek Hafta:</b> {next_fts} Transfer Hakkı ({next_fts} FT) &nbsp;|&nbsp; <b>Banka:</b> £{bundle.bank_amount:.1f}m")
+
             reasons_list = prim.get('reasons', [
                 "Kadronuzdaki ilk 11 oyuncularının fikstürleri ve puan potansiyelleri bu hafta için yeterli.",
                 "Zorunlu bir sakatlık veya acil transfer gerektiren bir durum bulunmuyor.",
-                "Hakkınızı saklayarak sonraki haftaya 2 serbest transfer hakkı devredebilirsiniz."
             ])
             for r in reasons_list:
                 lbl_r = QLabel(f"<span style='color: {COLORS['accent_pitch']}; font-weight: 900;'>•</span> &nbsp;{r}")

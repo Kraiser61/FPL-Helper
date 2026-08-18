@@ -358,9 +358,15 @@ class StrategyEngine:
                 target_str = f"Kaptan Puanını 3x Katlama"
                 reason_str = "En patlayıcı haftada kaptan puanından maksimum fayda sağlama."
             else:
-                action_str = f"🛡️ Transfer Sakla (Roll FT) ──► Gelecek Hafta {int(p_step.get('ft', 1))} FT"
-                target_str = "Haftaya Çoklu Transfer Esnekliği"
-                reason_str = "Mevcut 11 yeterli; gereksiz transfer yapmayıp hak devretme stratejisi."
+                if (is_preseason or current_gw == 1) and gw_no == 1:
+                    action_str = "🛡️ Kadroyu Koru ──► GW2 için 1 FT"
+                    target_str = "Sezona Mevcut Kadroyla Başlangıç"
+                    reason_str = "1. haftaya bu kadroyla girilmesi önerilir; GW2'de 1 serbest transfer hakkınız tanımlanacaktır."
+                else:
+                    target_ft = int(p_step.get('ft', 1))
+                    action_str = f"🛡️ Transfer Sakla (Roll FT) ──► Gelecek Hafta {target_ft} FT"
+                    target_str = f"Haftaya {target_ft} FT Esnekliği"
+                    reason_str = "Mevcut 11 yeterli; gereksiz transfer yapmayıp hak devretme stratejisi."
 
             golden_path.append({
                 "gw": gw_no,
