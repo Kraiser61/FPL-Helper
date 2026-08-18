@@ -398,6 +398,28 @@ class StrategyEngine:
             }
         else:
             net_gain = 0.0
+            if is_preseason or current_gw == 1:
+                roll_summary = "Mevcut 15 kişilik kadronuz dengeli; 1. haftaya bu kadroyla başlamanız önerilir."
+                roll_reasons = [
+                    "Mevcut 11'inizin puan potansiyeli bu hafta için yeterince dengeli ve güçlü.",
+                    "Acil değişiklik gerektiren kritik bir sakatlık veya eksiklik bulunmuyor.",
+                    "GW1 maç teslim saati (deadline) geçtikten sonra GW2 için 1 Serbest Transfer (1 FT) hakkınız tanımlanacaktır.",
+                ]
+                roll_eval_reason = "1. haftaya bu 15 kişilik kadroyla girmeniz önerilir."
+                alt_title = "🛡️ Kadroyu Koru (Değişiklik Yapma)"
+                alt_desc = "Mevcut 15 kişilik kadronuzla 1. haftaya başlayabilir, lig başladıktan sonra haftalık transferlerinizi planlayabilirsiniz."
+            else:
+                target_ft = min(5, ft_count + 1)
+                roll_summary = "Open-FPL-Solver analizine göre bu hafta transfer hakkınızı saklamak (Roll FT) uzun vadede daha yüksek matematiksel değer üretiyor."
+                roll_reasons = [
+                    "Mevcut 11'inizin puan potansiyeli bu hafta için yeterince dengeli ve güçlü.",
+                    "Acil transfer gerektiren kritik bir sakatlık veya değer kaybı bulunmuyor.",
+                    f"Transfer hakkını saklayarak sonraki haftaya {target_ft} FT esnekliğiyle girmek daha avantajlı.",
+                ]
+                roll_eval_reason = f"Bu hafta hakkınızı devrederek sonraki haftaya {target_ft} transfer esnekliğiyle girmek daha avantajlı."
+                alt_title = "🛡️ Transfer Yapmadan Devret (Hakkını Sakla)"
+                alt_desc = f"Bu hafta transfer yapmazsanız hakkınız sonraki haftaya {target_ft} transfer hakkı olarak devreder."
+
             primary_action = {
                 "type": "roll_ft",
                 "decision_code": "ROLL_FT",
@@ -406,17 +428,13 @@ class StrategyEngine:
                 "net_xp_gain": 0.0,
                 "hit_cost": 0,
                 "budget_remaining": first_gw_plan.get("itb", bank),
-                "summary_reason": "Open-FPL-Solver analizine göre bu hafta transfer hakkınızı saklamak (Roll FT) uzun vadede daha yüksek matematiksel değer üretiyor.",
-                "reasons": [
-                    "Mevcut 11'inizin puan potansiyeli bu hafta için yeterince dengeli ve güçlü.",
-                    "Acil transfer gerektiren kritik bir sakatlık veya değer kaybı bulunmuyor.",
-                    "Transfer hakkını harcamayıp haftaya devrederek 2 FT ile çift transfer esnekliği elde edebilirsiniz.",
-                ],
+                "summary_reason": roll_summary,
+                "reasons": roll_reasons,
             }
 
         # Roll Evaluation Card
         roll_evaluation = {
-            "status": "❌ Transfer Yapın (Avantajlı)" if has_transfers else "✅ Transfer Yapmadan Devredin (Roll FT)",
+            "status": "❌ Transfer Yapın (Avantajlı)" if has_transfers else ("✅ Kadroyu Koruyun" if (is_preseason or current_gw == 1) else "✅ Transfer Yapmadan Devredin (Roll FT)"),
             "roll_ev": round(sum(p.xp_next_gw for p in squad_analyses[:11]), 1),
             "transfer_ev": round(sum(p.xp_next_gw for p in squad_analyses[:11]) + net_gain, 1),
             "diff_ev": net_gain,
@@ -424,14 +442,14 @@ class StrategyEngine:
             "reason": (
                 f"Transfer hamlesi net +{net_gain:.1f} puan kazandırıyor."
                 if has_transfers
-                else "Bu hafta hakkınızı devrederek sonraki haftaya çoklu transfer esnekliğiyle girmek daha avantajlı."
+                else roll_eval_reason
             ),
         }
 
         alternative_action = {
             "type": "roll_ft",
-            "title": "🛡️ Transfer Yapmadan Devret (Hakkını Sakla)",
-            "description": "Bu hafta transfer yapmazsanız hakkınız sonraki haftaya 2 transfer hakkı olarak devreder ve çift transfer esnekliği kazanırsınız.",
+            "title": alt_title if not has_transfers else ("🛡️ Kadroyu Koru" if (is_preseason or current_gw == 1) else "🛡️ Transfer Yapmadan Devret (Hakkını Sakla)"),
+            "description": alt_desc if not has_transfers else ("1. haftaya mevcut kadronuzla başlayabilirsiniz." if (is_preseason or current_gw == 1) else f"Bu hafta transfer yapmazsanız hakkınız sonraki haftaya devreder."),
         }
 
         # Squad Fixture Radar

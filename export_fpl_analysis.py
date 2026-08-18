@@ -174,18 +174,27 @@ def format_html_transfer(bundle: DecisionBundle) -> str:
         body.append("</div>")
 
     else:
+        if bundle.is_preseason or bundle.current_gw == 1:
+            title = "Kadroyu Koru (Değişiklik Yok)"
+            subtitle = "Sezonun 1. haftasına mevcut 15 kişilik kadronuzla başlayın."
+            r3 = "GW1 teslim saati (deadline) sonrası GW2 için 1 Serbest Transfer (1 FT) hakkınız tanımlanacaktır."
+        else:
+            title = "Transfer Yapma (Roll FT)"
+            subtitle = "Hakkınızı saklayarak sonraki haftaya devredin."
+            r3 = "Transfer hakkını saklayarak sonraki haftaya <strong style='color:#4ade80;'>çoklu FT esnekliğiyle</strong> girmek daha yüksek puan getirisi sağlar."
+
         body.append(f"""
         <div class="card" style="border: 1.5px solid #38bdf8; border-left: 6px solid #38bdf8;">
           <div style="font-size: 13px; font-weight: 800; color: #38bdf8; text-transform: uppercase;">🛡️ STRATEJİK KARAR</div>
-          <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 4px 0;">Transfer Yapma (Roll FT)</div>
-          <div style="font-size: 14px; color: #94a3b8; font-weight: 500;">Hakkınızı saklayarak sonraki haftaya 2 FT ile girin.</div>
+          <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 4px 0;">{title}</div>
+          <div style="font-size: 14px; color: #94a3b8; font-weight: 500;">{subtitle}</div>
         </div>
 
         <div class="card">
           <div style="font-size: 15px; font-weight: 800; color: #38bdf8; margin-bottom: 8px;">💡 STRATEJİK GEREKÇE:</div>
           <div style="font-size: 14px; color: #e2e8f0; margin-bottom: 6px; line-height: 1.4;'>• Mevcut ilk 11'inizin puan potansiyeli bu hafta için dengeli.</div>
           <div style="font-size: 14px; color: #e2e8f0; margin-bottom: 6px; line-height: 1.4;'>• Acil transfer gerektiren kritik bir sakatlık bulunmuyor.</div>
-          <div style="font-size: 14px; color: #e2e8f0; line-height: 1.4;'>• Transfer hakkını saklayarak sonraki haftaya <strong style='color:#4ade80;'>2 FT esnekliğiyle</strong> girmek daha yüksek puan getirisi sağlar.</div>
+          <div style="font-size: 14px; color: #e2e8f0; line-height: 1.4;'>• {r3}</div>
         </div>
         """)
 
@@ -723,8 +732,13 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
             lines.append(f"🎯 <b>Çoklu Transfer:</b> 🔴 {touts} ➔ 🟢 {tins}")
             lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
     else:
-        lines.append("🎯 <b>Transfer:</b> 🛡️ Transferi Pas Geç (Roll FT)")
-        lines.append("   <i>Tavsiye: Gelecek hafta için 2 FT biriktir.</i>\n")
+        is_pre = meta.get("is_preseason", False) or gw == 1
+        if is_pre:
+            lines.append("🎯 <b>Transfer:</b> 🛡️ Kadroyu Koru (Değişiklik Yapma)")
+            lines.append("   <i>Tavsiye: 1. haftaya mevcut kadroyla başla (GW2 için 1 FT tanımlanacak).</i>\n")
+        else:
+            lines.append("🎯 <b>Transfer:</b> 🛡️ Transferi Pas Geç (Roll FT)")
+            lines.append("   <i>Tavsiye: Gelecek hafta için FT hakkını devret ve biriktir.</i>\n")
 
     # 3. İdeal 11 & Diziliş
     formation = lineup.get("formation", "3-5-2")
