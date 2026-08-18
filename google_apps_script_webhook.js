@@ -51,7 +51,7 @@ function doPost(e) {
       } else {
         sendTelegramMessage(chatId, "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (~35 sn).</i>");
       }
-      triggerGitHubActions(text);
+      triggerGitHubActions(text, chatId);
       return HtmlService.createHtmlOutput("OK");
     }
 
@@ -132,7 +132,14 @@ function sendTelegramMessage(chatId, text) {
   });
 }
 
-function triggerGitHubActions(teamDataText) {
+function triggerGitHubActions(teamDataText, chatId) {
+  if (!GITHUB_PAT || GITHUB_PAT === "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN") {
+    if (chatId) {
+      sendTelegramMessage(chatId, "⚠️ <b>Hata:</b> Google Apps Script içinde GITHUB_PAT (GitHub Token) tanımlı değil. Lütfen Script Properties'e GITHUB_PAT ekleyin.");
+    }
+    Logger.log("GITHUB_PAT tanımlı değil.");
+    return null;
+  }
   const url = `https://api.github.com/repos/${GITHUB_REPO}/dispatches`;
   const payload = {
     event_type: "telegram-trigger",
@@ -152,9 +159,13 @@ function triggerGitHubActions(teamDataText) {
     muteHttpExceptions: true
   };
   const res = UrlFetchApp.fetch(url, options);
-  Logger.log("GitHub Dispatch Response Code: " + res.getResponseCode());
-  if (res.getResponseCode() !== 204) {
+  const code = res.getResponseCode();
+  Logger.log("GitHub Dispatch Response Code: " + code);
+  if (code !== 204) {
     Logger.log("GitHub Dispatch Error: " + res.getContentText());
+    if (chatId) {
+      sendTelegramMessage(chatId, `⚠️ <b>GitHub Tetikleme Hatası (${code}):</b> ${res.getContentText() || 'GitHub yetkisi reddedildi.'}`);
+    }
   }
   return res;
 }
@@ -162,8 +173,10 @@ function triggerGitHubActions(teamDataText) {
 // Test fonksiyonu: GitHub bağlantısını doğrudan doğrulamak için bunu Apps Script'ten çalıştırabilirsiniz.
 function testGitHubDispatch() {
   const res = triggerGitHubActions("/analiz");
-  Logger.log("Test HTTP Response Code: " + res.getResponseCode());
-  Logger.log("Test Response Body: " + res.getContentText());
+  if (res) {
+    Logger.log("Test HTTP Response Code: " + res.getResponseCode());
+    Logger.log("Test Response Body: " + res.getContentText());
+  }
 }
 
 function fetchAnalysisJson() {
