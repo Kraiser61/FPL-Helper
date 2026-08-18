@@ -825,6 +825,42 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     tg_report = format_telegram_report(payload)
     payload["telegram_report"] = tg_report
 
+    # Pre-render all instant Telegram command reports for the generic webhook router
+    help_rep = format_telegram_help_report()
+    cap_rep = format_telegram_captain_report(payload)
+    health_rep = format_telegram_health_report(payload)
+    swing_rep = format_telegram_fixture_report(payload)
+    price_rep = format_telegram_price_report(payload)
+
+    payload["reports"] = {
+        "analiz": tg_report,
+        "taktik": tg_report,
+        "kadrom": tg_report,
+        "rapor": tg_report,
+        "yardim": help_rep,
+        "help": help_rep,
+        "komutlar": help_rep,
+        "maclar": matches_report,
+        "maçlar": matches_report,
+        "fikstur": matches_report,
+        "fikstür": matches_report,
+        "program": matches_report,
+        "kaptan": cap_rep,
+        "captain": cap_rep,
+        "sakatlar": health_rep,
+        "revir": health_rep,
+        "saglik": health_rep,
+        "sağlık": health_rep,
+        "salincak": swing_rep,
+        "salıncak": swing_rep,
+        "swings": swing_rep,
+        "kolayfikstur": swing_rep,
+        "kolayfikstür": swing_rep,
+        "fiyat": price_rep,
+        "price": price_rep,
+        "zam": price_rep
+    }
+
     if output_path is None:
         data_dir = BASE_DIR / "data"
         data_dir.mkdir(parents=True, exist_ok=True)

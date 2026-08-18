@@ -30,96 +30,85 @@ function doPost(e) {
     const chatId = update.message.chat.id;
     const text = update.message.text.trim();
     const textLower = text.toLowerCase();
+    const cleanCmd = textLower.replace(/^\//, "").trim();
 
-    // 1. YARDIM / HELP (⚡ 0.1 sn)
-    if (textLower === "/yardim" || textLower === "/help" || textLower === "yardim" || textLower === "yardım" || textLower === "help" || textLower === "komutlar") {
-      sendTelegramMessage(chatId, getHelpText());
+    // 1. AĞIR MOTOR & ÇÖZÜCÜ KOMUTLARI (GitHub Actions Tetikler + Anında Geri Bildirim)
+    if (
+      cleanCmd === "analiz" || cleanCmd === "kadrom" || cleanCmd === "taktik" ||
+      cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard" ||
+      textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal") || textLower.includes("kadromu rüya") ||
+      textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine") ||
+      textLower.startsWith("/kadro")
+    ) {
+      if (cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard") {
+        sendTelegramMessage(chatId, "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (~10 sn).</i>");
+      } else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) {
+        sendTelegramMessage(chatId, "🔄 <b>Transfer isteğiniz işleniyor...</b>");
+      } else if (textLower.startsWith("/kadro")) {
+        sendTelegramMessage(chatId, "📋 <b>15 kişilik kadronuz kaydediliyor...</b>");
+      } else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) {
+        sendTelegramMessage(chatId, "📋 <b>Kadro güncelleme başlatıldı...</b>");
+      } else {
+        sendTelegramMessage(chatId, "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (~35 sn).</i>");
+      }
+      triggerGitHubActions(text);
       return HtmlService.createHtmlOutput("OK");
     }
 
-    // 2. ANLIK ÖNBELLEK KOMUTLARI (⚡ 0.3 sn - GitHub Actions çalıştırmaz)
-    if (textLower === "/maclar" || textLower === "/maçlar" || textLower === "maclar" || textLower === "maçlar" || textLower === "/fikstur" || textLower === "/fikstür" || textLower === "fikstur" || textLower === "fikstür" || textLower === "/program" || textLower === "program" || textLower === "maç programı" || textLower === "mac programi" || textLower === "haftanın maçları" || textLower === "haftanin maclari" || textLower === "/haftalikmaclar") {
-      const data = fetchAnalysisJson();
-      if (data && (data.matches_report || data.fixtures)) {
+    // 2. ANLIK RAPORLAR (⚡ 0.2 sn - fpl_analysis.json içindeki hazır rapor havuzundan çeker)
+    const data = fetchAnalysisJson();
+    if (data) {
+      // Önce Python tarafından fpl_analysis.json içine gömülen güncel rapor havuzuna bak
+      if (data.reports && typeof data.reports === "object") {
+        if (data.reports[cleanCmd]) {
+          sendTelegramMessage(chatId, data.reports[cleanCmd]);
+          return HtmlService.createHtmlOutput("OK");
+        }
+        
+        // Komut takma adları (Aliases)
+        const aliasMap = {
+          "help": "yardim", "komutlar": "yardim", "yardım": "yardim",
+          "fikstur": "maclar", "fikstür": "maclar", "program": "maclar", "maçlar": "maclar", "maclar": "maclar", "maç programı": "maclar", "mac programi": "maclar", "haftanın maçları": "maclar", "haftanin maclari": "maclar", "/haftalikmaclar": "maclar",
+          "c kim": "kaptan", "captain": "kaptan", "kime verelim": "kaptan",
+          "revir": "sakatlar", "saglik": "sakatlar", "sağlık": "sakatlar", "injury": "sakatlar",
+          "kolay maçlar": "salincak", "kolay fikstür": "salincak", "swings": "salincak", "kolayfikstur": "salincak", "kolayfikstür": "salincak",
+          "fiyatlar": "fiyat", "price": "fiyat", "zam": "fiyat", "düşüş": "fiyat"
+        };
+        const mappedKey = aliasMap[cleanCmd] || aliasMap[textLower];
+        if (mappedKey && data.reports[mappedKey]) {
+          sendTelegramMessage(chatId, data.reports[mappedKey]);
+          return HtmlService.createHtmlOutput("OK");
+        }
+      }
+
+      // Güvenlik yedeği (Fallback formatlayıcılar)
+      if (cleanCmd === "yardim" || cleanCmd === "help" || cleanCmd === "yardım") {
+        sendTelegramMessage(chatId, getHelpText());
+        return HtmlService.createHtmlOutput("OK");
+      }
+      if (cleanCmd === "maclar" || cleanCmd === "maçlar" || cleanCmd === "fikstur" || cleanCmd === "fikstür" || cleanCmd === "program") {
         sendTelegramMessage(chatId, formatMatchesReport(data));
-      } else {
-        sendTelegramMessage(chatId, "⚠️ Fikstür verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırarak verileri güncelleyin.");
+        return HtmlService.createHtmlOutput("OK");
       }
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    if (textLower === "/kaptan" || textLower === "kaptan" || textLower === "c kim") {
-      const data = fetchAnalysisJson();
-      if (data && data.lineup) {
+      if (cleanCmd === "kaptan") {
         sendTelegramMessage(chatId, formatCaptainReport(data));
-      } else {
-        sendTelegramMessage(chatId, "⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.");
+        return HtmlService.createHtmlOutput("OK");
       }
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    if (textLower === "/sakatlar" || textLower === "/revir" || textLower === "sakatlar" || textLower === "revir" || textLower === "sağlık" || textLower === "saglik") {
-      const data = fetchAnalysisJson();
-      if (data && data.squad_health) {
+      if (cleanCmd === "sakatlar" || cleanCmd === "revir") {
         sendTelegramMessage(chatId, formatHealthReport(data));
-      } else {
-        sendTelegramMessage(chatId, "⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.");
+        return HtmlService.createHtmlOutput("OK");
       }
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    if (textLower === "/salincak" || textLower === "/kolaymaclar" || textLower === "/kolayfikstur" || textLower === "salıncak" || textLower === "salincak" || textLower === "kolay maçlar" || textLower === "kolay fikstür") {
-      const data = fetchAnalysisJson();
-      if (data && data.fixture_swings) {
+      if (cleanCmd === "salincak") {
         sendTelegramMessage(chatId, formatFixtureReport(data));
-      } else {
-        sendTelegramMessage(chatId, "⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.");
+        return HtmlService.createHtmlOutput("OK");
       }
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    if (textLower === "/fiyat" || textLower === "fiyat" || textLower === "fiyatlar" || textLower === "zam") {
-      const data = fetchAnalysisJson();
-      if (data && data.price_alerts) {
+      if (cleanCmd === "fiyat") {
         sendTelegramMessage(chatId, formatPriceReport(data));
-      } else {
-        sendTelegramMessage(chatId, "⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.");
+        return HtmlService.createHtmlOutput("OK");
       }
-      return HtmlService.createHtmlOutput("OK");
     }
 
-    // 3. AĞIR MOTOR / ÇÖZÜCÜ KOMUTLARI (GitHub Actions Tetikler + Özel Bildirim)
-    if (textLower === "/analiz" || textLower === "analiz" || textLower === "kadrom" || textLower === "taktik") {
-      sendTelegramMessage(chatId, "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (~35 sn).</i>");
-      triggerGitHubActions(text);
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    if (textLower === "/optimal" || textLower === "/ruyatimi" || textLower === "optimal" || textLower === "rüya takım" || textLower === "ruya takim" || textLower === "wildcard") {
-      sendTelegramMessage(chatId, "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (~10 sn).</i>");
-      triggerGitHubActions(text);
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal") || textLower.includes("kadromu rüya")) {
-      sendTelegramMessage(chatId, "📋 <b>Kadro güncelleme başlatıldı...</b>");
-      triggerGitHubActions(text);
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) {
-      sendTelegramMessage(chatId, "🔄 <b>Transfer isteğiniz işleniyor...</b>");
-      triggerGitHubActions(text);
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    if (textLower.startsWith("/kadro")) {
-      sendTelegramMessage(chatId, "📋 <b>15 kişilik kadronuz kaydediliyor...</b>");
-      triggerGitHubActions(text);
-      return HtmlService.createHtmlOutput("OK");
-    }
-
-    // Tanınmayan komut
+    // 3. TANINMAYAN KOMUT (Varsayılan Rehber)
     sendTelegramMessage(chatId, "🤖 <b>Komut anlaşılamadı.</b> Mevcut komutlar için <b>/yardim</b> yazabilirsiniz.");
 
   } catch (err) {
