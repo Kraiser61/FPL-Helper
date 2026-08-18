@@ -121,35 +121,42 @@ def format_html_transfer(bundle: DecisionBundle) -> str:
     """)
 
     if action_type == "transfer" and action.get("transfers_in") and action.get("transfers_out"):
-        p_in = action["transfers_in"][0]
-        p_out = action["transfers_out"][0]
-        in_name = p_in.web_name if hasattr(p_in, "web_name") else str(p_in)
-        out_name = p_out.web_name if hasattr(p_out, "web_name") else str(p_out)
-        in_cost = (p_in.now_cost / 10.0) if hasattr(p_in, "now_cost") else 0.0
-        out_cost = (p_out.now_cost / 10.0) if hasattr(p_out, "now_cost") else 0.0
-        in_team = p_team(p_in) if hasattr(p_in, "team_id") else ""
-        out_team = p_team(p_out) if hasattr(p_out, "team_id") else ""
-        in_pos = p_pos(p_in) if hasattr(p_in, "element_type") else "MID"
-        out_pos = p_pos(p_out) if hasattr(p_out, "element_type") else "MID"
+        t_ins = action["transfers_in"]
+        t_outs = action["transfers_out"]
+        for idx in range(max(len(t_ins), len(t_outs))):
+            p_out = t_outs[idx] if idx < len(t_outs) else None
+            p_in = t_ins[idx] if idx < len(t_ins) else None
+            if p_out:
+                out_name = p_out.web_name if hasattr(p_out, "web_name") else (p_out.get("name") if isinstance(p_out, dict) else str(p_out))
+                out_cost = (p_out.now_cost / 10.0) if hasattr(p_out, "now_cost") else (p_out.get("cost", 0.0) if isinstance(p_out, dict) else 0.0)
+                out_team = p_team(p_out) if hasattr(p_out, "team_id") else (p_out.get("team", "") if isinstance(p_out, dict) else "")
+                out_pos = p_pos(p_out) if hasattr(p_out, "element_type") else (p_out.get("pos", "MID") if isinstance(p_out, dict) else "MID")
+                body.append(f"""
+                <!-- OUT PLAYER -->
+                <div class="card" style="background:#220e14; border: 1.5px solid #ef4444; border-left: 6px solid #ef4444; margin-bottom: 6px;">
+                  <div style="font-size: 13px; font-weight: 800; color: #f87171; text-transform: uppercase;">❌ SATILACAK OYUNCU</div>
+                  <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 3px 0;">{out_name}</div>
+                  <div style="font-size: 14px; font-weight: 600; color: #fca5a5;">{out_team} │ {out_pos} │ £{out_cost:.1f}m</div>
+                </div>
+
+                <!-- ARROW -->
+                <div style="text-align: center; font-size: 22px; font-weight: 900; color: #38bdf8; margin: 4px 0;">⬇️</div>
+                """)
+            if p_in:
+                in_name = p_in.web_name if hasattr(p_in, "web_name") else (p_in.get("name") if isinstance(p_in, dict) else str(p_in))
+                in_cost = (p_in.now_cost / 10.0) if hasattr(p_in, "now_cost") else (p_in.get("cost", 0.0) if isinstance(p_in, dict) else 0.0)
+                in_team = p_team(p_in) if hasattr(p_in, "team_id") else (p_in.get("team", "") if isinstance(p_in, dict) else "")
+                in_pos = p_pos(p_in) if hasattr(p_in, "element_type") else (p_in.get("pos", "MID") if isinstance(p_in, dict) else "MID")
+                body.append(f"""
+                <!-- IN PLAYER -->
+                <div class="card" style="background:#07271b; border: 1.5px solid #10b981; border-left: 6px solid #10b981; margin-bottom: 10px;">
+                  <div style="font-size: 13px; font-weight: 800; color: #34d399; text-transform: uppercase;">✅ ALINACAK OYUNCU</div>
+                  <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 3px 0;">{in_name}</div>
+                  <div style="font-size: 14px; font-weight: 600; color: #86efac;">{in_team} │ {in_pos} │ £{in_cost:.1f}m</div>
+                </div>
+                """)
 
         body.append(f"""
-        <!-- OUT PLAYER -->
-        <div class="card" style="background:#220e14; border: 1.5px solid #ef4444; border-left: 6px solid #ef4444; margin-bottom: 6px;">
-          <div style="font-size: 13px; font-weight: 800; color: #f87171; text-transform: uppercase;">❌ SATILACAK OYUNCU</div>
-          <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 3px 0;">{out_name}</div>
-          <div style="font-size: 14px; font-weight: 600; color: #fca5a5;">{out_team} │ {out_pos} │ £{out_cost:.1f}m</div>
-        </div>
-
-        <!-- ARROW -->
-        <div style="text-align: center; font-size: 22px; font-weight: 900; color: #38bdf8; margin: 4px 0;">⬇️</div>
-
-        <!-- IN PLAYER -->
-        <div class="card" style="background:#07271b; border: 1.5px solid #10b981; border-left: 6px solid #10b981; margin-bottom: 10px;">
-          <div style="font-size: 13px; font-weight: 800; color: #34d399; text-transform: uppercase;">✅ ALINACAK OYUNCU</div>
-          <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 3px 0;">{in_name}</div>
-          <div style="font-size: 14px; font-weight: 600; color: #86efac;">{in_team} │ {in_pos} │ £{in_cost:.1f}m</div>
-        </div>
-
         <!-- STATS BLOCK -->
         <div class="card">
           <div style="font-size: 13px; font-weight: 700; color: #94a3b8;">📊 NET PUAN BEKLENTİSİ:</div>

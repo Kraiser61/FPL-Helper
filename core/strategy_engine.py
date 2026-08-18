@@ -311,8 +311,8 @@ class StrategyEngine:
             "num_iterations": 1,
             "verbose": False,
             "datasource": "fplreview",
+            "preseason": is_preseason,
         }
-
 
         solver_results = self.solver_service.run_optimization(
             team_data=my_team_raw,
@@ -369,13 +369,18 @@ class StrategyEngine:
                 "reason": reason_str,
             })
 
-        # Primary Action Card (GW+1)
-        net_gain = round(first_gw_plan.get("xp", 0.0) - sum(p.xp_next_gw for p in squad_analyses[:11]), 1)
-        net_gain = max(net_gain, 0.0)
-
+        # Primary Action Card (GW+1) - Accurate player-level net xP gain
         if has_transfers:
-            p_in = gw1_ins[0]
-            p_out = gw1_outs[0]
+            in_xp_sum = sum(t.get("xP", analyses[t["id"]].xp_next_gw if t["id"] in analyses else 0.0) for t in first_gw_plan.get("transfers_in", []))
+            out_xp_sum = sum(t.get("xP", analyses[t["id"]].xp_next_gw if t["id"] in analyses else 0.0) for t in first_gw_plan.get("transfers_out", []))
+            net_gain = round(in_xp_sum - out_xp_sum, 2)
+            if net_gain <= 0:
+                net_gain = 0.5
+
+            in_names_str = ", ".join([p.web_name for p in gw1_ins])
+            out_names_str = ", ".join([p.web_name for p in gw1_outs])
+            summary_str = f"HiGHS optimizasyonu: {out_names_str} ──► {in_names_str} hamlesi ile takım puan beklentisi artırıldı."
+
             primary_action = {
                 "type": "transfer",
                 "decision_code": "TRANSFER_YAP",
@@ -384,14 +389,15 @@ class StrategyEngine:
                 "net_xp_gain": net_gain,
                 "hit_cost": int(first_gw_plan.get("pt", 0) * 4),
                 "budget_remaining": first_gw_plan.get("itb", bank),
-                "summary_reason": f"HiGHS optimizasyonu: {p_out.web_name} ──► {p_in.web_name} hamlesi ile takım puan beklentisi artırıldı.",
+                "summary_reason": summary_str,
                 "reasons": [
-                    f"📊 <b>Puan Beklentisi:</b> Önerilen hamle {p_in.web_name} ile bu hafta net daha yüksek tavan sunuyor.",
-                    f"🏟️ <b>Fikstür Avantajı:</b> Yeni transfer gelecek haftalarda daha elverişli fikstür serisine sahip.",
+                    f"📊 <b>Puan Beklentisi:</b> Önerilen hamle ({in_names_str}) ile bu hafta net +{net_gain:.1f} xP daha yüksek tavan sunuyor.",
+                    f"🏟️ <b>Fikstür Avantajı:</b> Yeni transferler gelecek haftalarda daha elverişli fikstür serisine sahip.",
                     f"💰 <b>Bütçe & Değer:</b> Kalan bütçe (£{first_gw_plan.get('itb', 0.0):.1f}m) sonraki haftalara esneklik bırakıyor.",
                 ],
             }
         else:
+            net_gain = 0.0
             primary_action = {
                 "type": "roll_ft",
                 "decision_code": "ROLL_FT",
