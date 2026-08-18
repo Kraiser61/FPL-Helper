@@ -10,8 +10,8 @@ on:
   repository_dispatch: # Google Apps Script / Telegram Webhook tetiklemesi
     types: [telegram-trigger, solve, analyze]
   schedule:
-    # Her gün saat 05:00 ve 17:00 UTC (Türkiye saatiyle 08:00 ve 20:00)
-    - cron: '0 5,17 * * *'
+    # Saat başı FPL resmi deadline saatini kontrol eder (4 saat ve 1 saat kala otomatik çözer)
+    - cron: '0 * * * *'
   push:
     branches:
       - main
@@ -50,7 +50,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           RAW_TEAM_DATA: ${{ github.event.inputs.team_data || github.event.client_payload.team_data }}
         run: |
-          python export_fpl_analysis.py
+          python export_fpl_analysis.py ${{ github.event_name == 'schedule' && '--check-deadline' || '' }}
 
       - name: Commit and Push Analysis Data
         run: |

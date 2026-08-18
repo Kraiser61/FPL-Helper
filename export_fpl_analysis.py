@@ -19,9 +19,9 @@ POS_NAMES = {1: "GKP", 2: "DEF", 3: "MID", 4: "FWD"}
 POS_COLORS = {1: "#d97706", 2: "#2563eb", 3: "#059669", 4: "#7c3aed"}
 TEAM_NAMES = {
     1: "ARS", 2: "AVL", 3: "BOU", 4: "BRE", 5: "BHA",
-    6: "CHE", 7: "CRY", 8: "EVE", 9: "FUL", 10: "IPS",
-    11: "LEI", 12: "LIV", 13: "MCI", 14: "MUN", 15: "NEW",
-    16: "NFO", 17: "SOU", 18: "TOT", 19: "WHU", 20: "WOL"
+    6: "CHE", 7: "COV", 8: "CRY", 9: "EVE", 10: "FUL",
+    11: "HUL", 12: "IPS", 13: "LEE", 14: "LIV", 15: "MCI",
+    16: "MUN", 17: "NEW", 18: "NFO", 19: "TOT", 20: "SUN"
 }
 
 def p_pos(p: PlayerAnalysis) -> str:
@@ -506,7 +506,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
 
     return payload
 
-def format_telegram_report(payload: dict) -> str:
+def format_telegram_report(payload: dict, custom_header: str = "") -> str:
     meta = payload.get("meta", {})
     gw = meta.get("current_gw", 1)
     lineup = payload.get("lineup", {})
@@ -517,10 +517,17 @@ def format_telegram_report(payload: dict) -> str:
     def get_pname(p):
         if not p or not isinstance(p, dict):
             return ""
-        return str(p.get("name") or p.get("web_name") or p.get("id") or "")
+        name = str(p.get("name") or p.get("web_name") or p.get("id") or "")
+        team = p.get("team") or TEAM_NAMES.get(p.get("team_id"), "")
+        if team and name:
+            return f"{name} ({team})"
+        return name
 
     lines = []
-    lines.append(f"🦁 <b>FPL STRATEJİ RAPORU (GW{gw})</b>")
+    if custom_header:
+        lines.append(custom_header)
+    else:
+        lines.append(f"🦁 <b>FPL STRATEJİ RAPORU (GW{gw})</b>")
     lines.append(f"<i>Yapay Zeka & Poisson-Elo Projeksiyon Çözümü</i>\n")
 
     # 1. Kaptan & 2. Kaptan
@@ -581,10 +588,12 @@ def format_telegram_report(payload: dict) -> str:
         lines.append("🏥 <b>Sağlık / Sakatlık Radarı:</b>")
         for h in health:
             w_name = h.get("web_name")
+            t_id = h.get("team") or h.get("team_id")
+            team_str = f" ({TEAM_NAMES.get(t_id)})" if t_id in TEAM_NAMES else ""
             chance = h.get("chance")
             news = h.get("news", "Belirsiz")
             status_emoji = "🔴" if chance == 0 else "🟡"
-            lines.append(f"{status_emoji} <b>{w_name}:</b> %{chance if chance is not None else '?'} ({news})")
+            lines.append(f"{status_emoji} <b>{w_name}{team_str}:</b> %{chance if chance is not None else '?'} ({news})")
         lines.append("")
 
     lines.append("🤖 <i>Kraiser61 AI Engine</i>")
@@ -614,8 +623,49 @@ def send_telegram_report(report_text: str):
         app_logger.error(f"Failed to send Telegram message: {e}")
     return False
 
+def check_deadline_window() -> tuple[bool, str]:
+    """
+    Checks if the upcoming GW deadline is in ~4h or ~1h window.
+    Returns (should_run, headline_label).
+    """
+    import urllib.request
+    from datetime import datetime, timezone
+    try:
+        req = urllib.request.Request("https://fantasy.premierleague.com/api/bootstrap-static/", headers={"User-Agent": "FPL-Deadline-Checker"})
+        data = json.loads(urllib.request.urlopen(req, timeout=10).read())
+        events = data.get("events", [])
+        now_epoch = datetime.now(timezone.utc).timestamp()
+        next_event = next((e for e in events if e.get("is_next") or not e.get("finished")), None)
+        if next_event:
+            deadline_epoch = next_event.get("deadline_time_epoch")
+            hours_left = (deadline_epoch - now_epoch) / 3600.0
+            gw_name = next_event.get("name", "Gameweek")
+            
+            if 3.0 <= hours_left < 4.5:
+                return True, f"⏰ <b>DEADLINE'A 4 SAAT KALDI ({gw_name})</b>"
+            elif 0.2 <= hours_left < 1.5:
+                return True, f"🚨 <b>SON 1 SAAT - NİHAİ KADRO RAPORU ({gw_name})</b>"
+            else:
+                app_logger.info(f"{gw_name} deadline'ına {hours_left:.1f} saat var. Otomatik bildirim penceresi (4h / 1h) dışında. İşlem atlanıyor.")
+                return False, ""
+    except Exception as e:
+        app_logger.warning(f"Could not check deadline window: {e}")
+    return False, ""
+
 if __name__ == "__main__":
     if sys.stdout.encoding != 'utf-8':
         sys.stdout.reconfigure(encoding='utf-8')
-    mgr_id = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_MANAGER_ID
+    
+    # Check if scheduled deadline check
+    if "--check-deadline" in sys.argv:
+        should_run, deadline_label = check_deadline_window()
+        if not should_run:
+            sys.exit(0)
+    
+    mgr_id = DEFAULT_MANAGER_ID
+    for arg in sys.argv[1:]:
+        if arg.isdigit():
+            mgr_id = int(arg)
+            break
+
     asyncio.run(generate_analysis_json(manager_id=mgr_id))
