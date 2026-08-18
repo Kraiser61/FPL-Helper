@@ -387,6 +387,31 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     def matches_any(text: str, keywords: list) -> bool:
         return any(k in text for k in keywords)
 
+    # Check if user wants to adopt the Dream Team as their active squad:
+    if matches_any(cmd_lower, ["rüya takım ile değiştir", "ruya takim ile degistir", "kadromu rüya", "kadromu ruya", "kadroyu rüya", "kadroyu ruya", "kadroyu optimal", "kadromu optimal", "rüya kadroyu yaptım", "ruya kadroyu yaptim", "rüya takımı kurdum", "ruya takimi kurdum", "kadrom rüya takım", "kadrom ruya takim"]):
+        from core.solver.service import FPLSolverService
+        from ingestion.local_sync_server import save_synced_team_to_disk
+        solver = FPLSolverService()
+        results = solver.run_optimization(
+            team_data={"picks": [], "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}},
+            options_override={"preseason": True, "horizon": 5}
+        )
+        if results:
+            r = results[0]
+            df = r.picks[r.picks["week"] == 1]
+            picks = [{"element": int(row["id"]), "position": idx, "is_captain": row.get("captain") == 1, "is_vice_captain": row.get("vicecaptain") == 1} for idx, (_, row) in enumerate(df.iterrows(), 1)]
+            save_synced_team_to_disk({"manager_id": manager_id, "team_data": {"picks": picks, "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}}})
+            
+            names = [f"<b>{row['name']}</b> ({row['team']})" for _, row in df.iterrows()]
+            msg = (
+                "✅ <b>Kadronuz Rüya Takım (Optimal 15) ile Başarıyla Güncellendi!</b>\n\n"
+                f"📋 <b>Yeni 15 Kişilik Kadronuz:</b>\n{', '.join(names)}\n\n"
+                "<i>Bu 15 oyuncu artık sizin resmi kayıtlı kadronuzdur. Strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>\n\n"
+                "🤖 <i>Kraiser61 AI Engine</i>"
+            )
+            send_telegram_report(msg)
+            return {}
+
     if matches_any(cmd_lower, ["yardim", "yardım", "help", "komut", "ne yapabilirsin", "nasıl kullanılır"]):
         send_telegram_report(format_telegram_help_report())
         return {}
