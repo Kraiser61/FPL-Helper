@@ -98,7 +98,7 @@ def main():
             app_logger.info("Global refresh requested by user...")
             dash_vm.load_data()
             squad_vm.load_squad(gw_id=1)
-            transfer_vm.run_optimization(horizon_gws=1)
+            transfer_vm.run_optimization(horizon_gws=8)
 
         def on_browser_squad_synced(payload):
             app_logger.info("Live squad received from browser bookmarklet. Triggering instant refresh...")

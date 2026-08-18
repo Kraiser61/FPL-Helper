@@ -230,10 +230,21 @@ class SquadViewModel(QObject):
                             "transfers": {"bank": 0, "limit": 1, "made": 0},
                         }
 
-                    # Execute Open-FPL-Solver
+                    # Determine is_preseason
+                    current_event = next((e for e in bootstrap.events if e.is_current), None)
+                    if not current_event:
+                        current_event = next((e for e in bootstrap.events if e.is_next), bootstrap.events[0] if bootstrap.events else None)
+                    is_preseason = not bootstrap.events[0].finished if bootstrap.events else True
+
+                    # Execute Open-FPL-Solver with unified datasource and options
                     solver_results = self.solver_service.run_optimization(
                         team_data=my_team_raw,
-                        options_override={"horizon": 4, "verbose": False},
+                        options_override={
+                            "horizon": 8,
+                            "verbose": False,
+                            "datasource": "fplreview",
+                            "preseason": is_preseason,
+                        },
                     )
 
                     if solver_results:
