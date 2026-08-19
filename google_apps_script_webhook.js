@@ -136,8 +136,15 @@ function sendTelegramMessage(chatId, text) {
   });
 }
 
+function getGitHubToken() {
+  const prop = PropertiesService.getScriptProperties().getProperty("GITHUB_PAT");
+  if (prop && prop.trim().length > 10) return prop.trim();
+  return GITHUB_PAT;
+}
+
 function triggerGitHubActions(teamDataText, chatId) {
-  if (!GITHUB_PAT || GITHUB_PAT === "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN") {
+  const token = getGitHubToken();
+  if (!token || token === "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN") {
     if (chatId) {
       sendTelegramMessage(chatId, "⚠️ <b>Hata:</b> Google Apps Script içinde GITHUB_PAT (GitHub Token) tanımlı değil. Lütfen Script Properties'e GITHUB_PAT ekleyin.");
     }
@@ -155,9 +162,10 @@ function triggerGitHubActions(teamDataText, chatId) {
   const options = {
     method: "post",
     headers: {
-      "Authorization": `Bearer ${GITHUB_PAT}`,
-      "Accept": "application/vnd.github.v3+json",
-      "User-Agent": "GAS-Telegram-Bridge"
+      "Authorization": `Bearer ${token}`,
+      "Accept": "application/vnd.github+json",
+      "User-Agent": "GAS-Telegram-Bridge",
+      "X-GitHub-Api-Version": "2022-11-28"
     },
     contentType: "application/json",
     payload: JSON.stringify(payload),
