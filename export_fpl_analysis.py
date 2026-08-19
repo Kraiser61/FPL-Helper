@@ -633,49 +633,114 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             import re
             from fuzzywuzzy import fuzz
             
-            # Single transfer command: e.g. "/transfer Welbeck yerine Isak" or "transfer Haaland yerine Watkins"
-            if ("yerine" in cmd_lower or "/sat" in cmd_lower or "->" in cmd_lower or cmd_lower.startswith("/transfer") or cmd_lower.startswith("transfer")):
+            # Multi & Single transfer command: e.g. "/transfer Welbeck yerine Isak, Pedro Porro yerine F. Kadioglu"
+            if ("yerine" in cmd_lower or "/sat" in cmd_lower or "->" in cmd_lower or "=>" in cmd_lower or cmd_lower.startswith("/transfer") or cmd_lower.startswith("transfer")):
                 synced = load_synced_team_from_disk(chat_id=chat_id)
                 if synced and "team_data" in synced and "picks" in synced["team_data"]:
                     picks = synced["team_data"]["picks"]
                     bootstrap = await fpl_client.get_bootstrap_static()
-                    parts = re.split(r'yerine|->|/sat|/al|/transfer|transfer|,', raw_team_data, flags=re.IGNORECASE)
-                    parts = [p.strip() for p in parts if p.strip()]
-                    if len(parts) >= 2:
-                        p_out_str, p_in_str = parts[0], parts[1]
-                        out_p = None
-                        best_out_score = 0
-                        for pick in picks:
-                            p_obj = next((e for e in bootstrap.elements if e.id == pick["element"]), None)
-                            if p_obj:
-                                score = fuzz.token_sort_ratio(p_out_str.lower(), p_obj.web_name.lower())
-                                if score > best_out_score and score >= 60:
-                                    best_out_score = score
-                                    out_p = p_obj
-                        in_p = None
-                        best_in_score = 0
-                        for e in bootstrap.elements:
-                            score = max(fuzz.token_sort_ratio(p_in_str.lower(), e.web_name.lower()), fuzz.token_sort_ratio(p_in_str.lower(), f"{e.first_name} {e.second_name}".lower()) if hasattr(e, 'first_name') else 0)
-                            if score > best_in_score and score >= 65:
-                                best_in_score = score
-                                in_p = e
-                        if out_p and in_p:
+                    
+                    raw_clean = re.sub(r'^\s*/?transfer\s*', '', raw_team_data, flags=re.IGNORECASE).strip()
+                    clauses = re.split(r'[,;\n]|\s+ve\s+|\s+and\s+', raw_clean, flags=re.IGNORECASE)
+                    
+                    pairs = []
+                    for c in clauses:
+                        c = c.strip()
+                        if not c:
+                            continue
+                        parts = re.split(r'\byerine\b|->|=>|/sat|/al|\bfor\b', c, flags=re.IGNORECASE)
+                        parts = [p.strip() for p in parts if p.strip()]
+                        if len(parts) >= 2:
+                            pairs.append((parts[0], parts[1]))
+                    
+                    if pairs:
+                        applied = []
+                        failed = []
+                        for p_out_str, p_in_str in pairs:
+                            out_p = None
+                            best_out_score = 0
                             for pick in picks:
-                                if pick["element"] == out_p.id:
-                                    pick["element"] = in_p.id
-                                    break
+                                p_obj = next((e for e in bootstrap.elements if e.id == pick["element"]), None)
+                                if p_obj:
+                                    fname = getattr(p_obj, 'first_name', '')
+                                    sname = getattr(p_obj, 'second_name', '')
+                                    full = (fname + ' ' + sname).strip()
+                                    score = max(
+                                        fuzz.token_sort_ratio(p_out_str.lower(), p_obj.web_name.lower()),
+                                        fuzz.token_set_ratio(p_out_str.lower(), p_obj.web_name.lower()),
+                                        fuzz.token_sort_ratio(p_out_str.lower(), full.lower()),
+                                        fuzz.token_set_ratio(p_out_str.lower(), full.lower())
+                                    )
+                                    if score > best_out_score and score >= 60:
+                                        best_out_score = score
+                                        out_p = p_obj
+
+                            in_p = None
+                            best_in_score = 0
+                            for e in bootstrap.elements:
+                                fname = getattr(e, 'first_name', '')
+                                sname = getattr(e, 'second_name', '')
+                                full = (fname + ' ' + sname).strip()
+                                score = max(
+                                    fuzz.token_sort_ratio(p_in_str.lower(), e.web_name.lower()),
+                                    fuzz.token_set_ratio(p_in_str.lower(), e.web_name.lower()),
+                                    fuzz.token_sort_ratio(p_in_str.lower(), full.lower()),
+                                    fuzz.token_set_ratio(p_in_str.lower(), full.lower())
+                                )
+                                if score > best_in_score and score >= 60:
+                                    best_in_score = score
+                                    in_p = e
+
+                            if out_p and in_p:
+                                for pick in picks:
+                                    if pick["element"] == out_p.id:
+                                        pick["element"] = in_p.id
+                                        break
+                                applied.append((out_p, in_p))
+                            else:
+                                reason_parts = []
+                                if not out_p: reason_parts.append(f"kadronuzda '{p_out_str}' bulunamadı")
+                                if not in_p: reason_parts.append(f"FPL veritabanında '{p_in_str}' bulunamadı")
+                                failed.append((p_out_str, p_in_str, ", ".join(reason_parts)))
+
+                        if applied:
                             save_synced_team_to_disk({"manager_id": manager_id, "team_data": synced["team_data"]}, chat_id=chat_id)
-                            out_team = TEAM_NAMES.get(out_p.team, "")
-                            in_team = TEAM_NAMES.get(in_p.team, "")
-                            transfer_notification_text = (
-                                f"🔄 <b>Transfer Başarıyla Uygulandı!</b>\n\n"
-                                f"🔴 <b>Çıkan:</b> {out_p.web_name} ({out_team})\n"
-                                f"🟢 <b>Giren:</b> {in_p.web_name} ({in_team})\n\n"
-                                f"<i>Yeni kadronuzun strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>\n\n"
-                                f"🤖 <i>Kraiser61 AI Engine</i>"
-                            )
+                            
+                            lines = []
+                            if len(applied) == 1:
+                                o_p, i_p = applied[0]
+                                o_team = TEAM_NAMES.get(o_p.team, "")
+                                i_team = TEAM_NAMES.get(i_p.team, "")
+                                lines.append("🔄 <b>Transfer Başarıyla Uygulandı!</b>\n")
+                                lines.append(f"🔴 <b>Çıkan:</b> {o_p.web_name} ({o_team})")
+                                lines.append(f"🟢 <b>Giren:</b> {i_p.web_name} ({i_team})\n")
+                            else:
+                                lines.append(f"🔄 <b>{len(applied)} Transfer Başarıyla Uygulandı!</b>\n")
+                                for idx, (o_p, i_p) in enumerate(applied, 1):
+                                    o_team = TEAM_NAMES.get(o_p.team, "")
+                                    i_team = TEAM_NAMES.get(i_p.team, "")
+                                    lines.append(f"{idx}. 🔴 <b>Çıkan:</b> {o_p.web_name} ({o_team}) ➔ 🟢 <b>Giren:</b> {i_p.web_name} ({i_team})")
+                                lines.append("")
+                            
+                            if failed:
+                                lines.append("⚠️ <b>Uygulanamayanlar:</b>")
+                                for f_out, f_in, f_reason in failed:
+                                    lines.append(f"• {f_out} ➔ {f_in} ({f_reason})")
+                                lines.append("")
+
+                            lines.append("<i>Yeni kadronuzun strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>\n")
+                            lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+                            
+                            transfer_notification_text = "\n".join(lines)
                             send_telegram_report(transfer_notification_text)
-                            app_logger.success(f"Updated squad transfer: {out_p.web_name} -> {in_p.web_name} (chat_id: {chat_id})")
+                            app_logger.success(f"Applied {len(applied)} transfers (chat_id: {chat_id})")
+                            return {}
+                        elif failed:
+                            lines = ["❌ <b>Transferler Uygulanamadı:</b>\n"]
+                            for f_out, f_in, f_reason in failed:
+                                lines.append(f"• {f_out} ➔ {f_in} ({f_reason})")
+                            lines.append("\n🤖 <i>Kraiser61 AI Engine</i>")
+                            send_telegram_report("\n".join(lines))
                             return {}
             elif raw_team_data.startswith("{"):
                 parsed_team = json.loads(raw_team_data)
