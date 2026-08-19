@@ -23,6 +23,10 @@ const TEAM_FULL_NAMES = {
 };
 
 function doPost(e) {
+  return handleTelegramWebhook(e);
+}
+
+function handleTelegramWebhook(e) {
   try {
     const update = JSON.parse(e.postData.contents);
     if (!update.message || !update.message.text) return HtmlService.createHtmlOutput("OK");
