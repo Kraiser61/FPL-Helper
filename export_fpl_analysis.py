@@ -791,11 +791,21 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 app_logger.info(f"Processing squad text from Telegram (chat_id: {chat_id}): {raw_team_data[:60]}...")
                 bootstrap = await fpl_client.get_bootstrap_static()
                 td = parse_raw_text_to_team_data(raw_team_data, bootstrap.elements)
-                if td and td.get("picks") and len(td["picks"]) >= 11:
-                    save_synced_team_to_disk({"manager_id": manager_id, "team_data": td}, chat_id=chat_id)
-                    app_logger.success(f"Successfully saved {len(td['picks'])} picks from Telegram message.")
-                    send_telegram_report(f"✅ <b>{len(td['picks'])} Kişilik Kadronuz Başarıyla Kaydedildi!</b>\n\nHaftalık analizinizi almak için <b>/analiz</b> yazabilirsiniz.\n\n🤖 <i>Kraiser61 AI Engine</i>")
-                    return {}
+                if td and td.get("picks"):
+                    p_count = len(td["picks"])
+                    if p_count == 15:
+                        save_synced_team_to_disk({"manager_id": manager_id, "team_data": td}, chat_id=chat_id)
+                        app_logger.success(f"Successfully saved 15 picks from Telegram message.")
+                        send_telegram_report(f"✅ <b>15 Kişilik Kadronuz Eksiksiz Kaydedildi!</b>\n\nHaftalık analizinizi almak için <b>/analiz</b> yazabilirsiniz.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+                        return {}
+                    elif p_count >= 11:
+                        save_synced_team_to_disk({"manager_id": manager_id, "team_data": td}, chat_id=chat_id)
+                        missing = 15 - p_count
+                        send_telegram_report(f"⚠️ <b>{p_count} Oyuncu Kaydedildi ({missing} Oyuncu Eksik):</b>\n\nFPL kuralları gereği tam analiz için 15 oyuncu gereklidir. Eksik kalan oyuncuları <b>/transfer</b> ile veya 15 ismi <b>/kadro</b> ile tekrar girerek tamamlayabilirsiniz.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+                        return {}
+                    else:
+                        send_telegram_report(f"❌ <b>Kadronuz Kaydedilemedi:</b> Yalnızca {p_count} oyuncu tespit edilebildi. Lütfen en az 11 (tercihen 15) oyuncu ismini virgülle ayırarak girin.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+                        return {}
         except Exception as e:
             app_logger.error(f"Failed to parse RAW_TEAM_DATA from environment: {e}")
 

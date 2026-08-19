@@ -17,7 +17,17 @@ from utils.logger import app_logger
 
 def parse_raw_text_to_team_data(raw_text: str, elements: list) -> dict:
     import re
+    import unicodedata
     from fuzzywuzzy import fuzz
+
+    def normalize_text(text: str) -> str:
+        if not text:
+            return ""
+        tr_map = str.maketrans('ıİğĞşŞçÇöÖüÜ', 'iIgGsScCoOuU')
+        t = text.translate(tr_map)
+        t = unicodedata.normalize('NFKD', t).encode('ASCII', 'ignore').decode('utf-8')
+        t = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', t)
+        return t.strip().lower()
 
     clean_raw = raw_text.strip()
     if clean_raw.lower().startswith("/kadro"):
@@ -31,34 +41,61 @@ def parse_raw_text_to_team_data(raw_text: str, elements: list) -> dict:
     pos_limits = {1: 2, 2: 5, 3: 5, 4: 3}
     pos_counts = {1: 0, 2: 0, 3: 0, 4: 0}
 
-    # Pass 1: exact web_name matches
+    # Pass 1: exact normalized match against web_name, second_name, or full name
     for token in tokens:
-        clean = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', token).strip()
-        if not clean or len(clean) < 2:
+        norm_t = normalize_text(token)
+        if not norm_t or len(norm_t) < 2:
             continue
         for p in elements:
             if p.id in found_ids or pos_counts[p.element_type] >= pos_limits[p.element_type]:
                 continue
-            if p.web_name.lower() == clean.lower():
+            w_norm = normalize_text(p.web_name)
+            s_norm = normalize_text(getattr(p, 'second_name', ''))
+            fname = getattr(p, 'first_name', '')
+            sname = getattr(p, 'second_name', '')
+            f_norm = normalize_text(f"{fname} {sname}".strip())
+            
+            if norm_t in (w_norm, s_norm, f_norm):
                 found_players.append(p)
                 found_ids.add(p.id)
                 pos_counts[p.element_type] += 1
                 break
 
-    # Pass 2: fuzzy match
+    # Pass 2: high-confidence fuzzy matching (threshold >= 65)
     if len(found_players) < 15:
         for token in tokens:
-            clean = re.sub(r'[^a-zA-Z0-9\s\.\-]', '', token).strip()
-            if not clean or len(clean) < 2:
+            norm_t = normalize_text(token)
+            if not norm_t or len(norm_t) < 2:
                 continue
+            # Skip if this token already produced a found player
+            best_p = None
+            best_score = 0
             for p in elements:
                 if p.id in found_ids or pos_counts[p.element_type] >= pos_limits[p.element_type]:
                     continue
-                if fuzz.token_sort_ratio(clean.lower(), p.web_name.lower()) >= 80:
-                    found_players.append(p)
-                    found_ids.add(p.id)
-                    pos_counts[p.element_type] += 1
-                    break
+                w_norm = normalize_text(p.web_name)
+                s_norm = normalize_text(getattr(p, 'second_name', ''))
+                fname = getattr(p, 'first_name', '')
+                sname = getattr(p, 'second_name', '')
+                f_norm = normalize_text(f"{fname} {sname}".strip())
+
+                scores = [
+                    fuzz.token_sort_ratio(norm_t, w_norm),
+                    fuzz.token_set_ratio(norm_t, w_norm),
+                    fuzz.token_sort_ratio(norm_t, s_norm),
+                    fuzz.token_set_ratio(norm_t, s_norm),
+                    fuzz.token_sort_ratio(norm_t, f_norm),
+                    fuzz.token_set_ratio(norm_t, f_norm)
+                ]
+                max_s = max(scores)
+                if max_s > best_score and max_s >= 65:
+                    best_score = max_s
+                    best_p = p
+
+            if best_p:
+                found_players.append(best_p)
+                found_ids.add(best_p.id)
+                pos_counts[best_p.element_type] += 1
             if len(found_players) == 15:
                 break
 
