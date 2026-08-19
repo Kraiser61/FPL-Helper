@@ -85,6 +85,15 @@
         "position": 14,
         "is_captain": false,
         "is_vice_captain": false
+      },
+      {
+        "element": 113,
+        "position": 15,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2,
+        "selling_price": 45,
+        "purchase_price": 45
       }
     ],
     "chips": [],
