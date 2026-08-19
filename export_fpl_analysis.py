@@ -514,7 +514,45 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         send_telegram_report(optimal_msg)
         return {}
 
-    # 3. ADOPT DREAM TEAM AS ACTIVE SQUAD
+    # 3. SQUAD LIST COMMAND (/kadrom, /takim, /15, /oyuncular)
+    if matches_any(cmd_lower, ["/kadrom", "/takim", "/15", "/oyuncular", "kadromuz", "takımım", "takimim", "kadromu göster", "kadromu goster"]):
+        from ingestion.local_sync_server import load_synced_team_from_disk
+        synced = load_synced_team_from_disk(chat_id=chat_id)
+        if synced and "team_data" in synced and "picks" in synced["team_data"]:
+            picks = synced["team_data"]["picks"]
+            bootstrap = await fpl_client.get_bootstrap_static()
+            el_map = {e.id: e for e in bootstrap.elements}
+            
+            gkps, defs, mids, fwds = [], [], [], []
+            for p in picks:
+                el = el_map.get(p.get("element"))
+                if not el:
+                    continue
+                team_s = TEAM_NAMES.get(el.team, "")
+                price_str = f"£{el.now_cost/10.0:.1f}m"
+                cap = " ⭐ (K)" if p.get("is_captain") else (" (YK)" if p.get("is_vice_captain") else "")
+                p_text = f"<b>{el.web_name}</b> ({team_s} - {price_str}){cap}"
+                if el.element_type == 1: gkps.append(p_text)
+                elif el.element_type == 2: defs.append(p_text)
+                elif el.element_type == 3: mids.append(p_text)
+                elif el.element_type == 4: fwds.append(p_text)
+            
+            squad_msg = (
+                f"📋 <b>KAYITLI 15 KİŞİLİK KADRONUZ</b>\n\n"
+                f"🧤 <b>Kaleciler:</b>\n• " + "\n• ".join(gkps) + "\n\n"
+                f"🛡️ <b>Defanslar:</b>\n• " + "\n• ".join(defs) + "\n\n"
+                f"⚙️ <b>Orta Sahalar:</b>\n• " + "\n• ".join(mids) + "\n\n"
+                f"⚽ <b>Forvetler:</b>\n• " + "\n• ".join(fwds) + "\n\n"
+                f"💡 <i>Transfer yapmak için: <b>/transfer Çıkan yerine Giren</b></i>\n"
+                f"🤖 <i>Kraiser61 AI Engine</i>"
+            )
+            send_telegram_report(squad_msg)
+            return {"squad_report": squad_msg}
+        else:
+            send_telegram_report("⚠️ Kayıtlı bir kadro bulunamadı. Lütfen <b>/kadro [15 oyuncu]</b> yazarak kadronuzu kaydedin.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            return {}
+
+    # 4. ADOPT DREAM TEAM AS ACTIVE SQUAD
     if matches_any(cmd_lower, ["rüya takım ile değiştir", "ruya takim ile degistir", "kadromu rüya", "kadromu ruya", "kadroyu rüya", "kadroyu ruya", "kadroyu optimal", "kadromu optimal", "rüya kadroyu yaptım", "ruya kadroyu yaptim", "rüya takımı kurdum", "ruya takimi kurdum", "kadrom rüya takım", "kadrom ruya takim"]):
         from core.solver.service import FPLSolverService
         from ingestion.local_sync_server import save_synced_team_to_disk
