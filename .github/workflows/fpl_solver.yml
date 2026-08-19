@@ -7,6 +7,10 @@ on:
         description: 'Raw FPL my-team JSON or Telegram command'
         required: false
         default: ''
+      chat_id:
+        description: 'Telegram Chat ID to reply to'
+        required: false
+        default: ''
   repository_dispatch: # Google Apps Script / Telegram Webhook tetiklemesi
     types: [telegram-trigger, solve, analyze]
 
@@ -48,7 +52,7 @@ jobs:
           FPL_PASSWORD: ${{ secrets.FPL_PASSWORD }}
           FPL_AUTH_TOKEN: ${{ secrets.FPL_AUTH_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID: ${{ github.event.client_payload.chat_id || github.event.inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
           RAW_TEAM_DATA: ${{ github.event.inputs.team_data || github.event.client_payload.team_data }}
         run: |
           python export_fpl_analysis.py
@@ -57,11 +61,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/fpl_analysis.json data/fplreview.csv data/synced_team.json
+          git add data/fpl_analysis.json data/fplreview.csv data/synced_team.json data/users/
           if git diff --staged --quiet; then
             echo "Verilerde değişiklik yok. Commit atlanıyor."
           else
-            git commit -m "Auto: Update FPL Strategy Analysis & Hybrid FPLReview CSV [skip ci]"
+            git commit -m "Auto: Update FPL Strategy Analysis & User Squads [skip ci]"
             git pull --rebase origin main || true
             git push origin main
           fi

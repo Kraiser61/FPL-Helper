@@ -28,9 +28,29 @@ LOCAL_REPO_SYNC_PATH = os.path.join(
     "synced_team.json"
 )
 
-def save_synced_team_to_disk(data: Dict[str, Any]):
-    """Persists synced team data to disk so it survives app restarts."""
-    for path in [SYNC_CACHE_PATH, LOCAL_REPO_SYNC_PATH]:
+def get_user_sync_path(chat_id: Optional[str] = None) -> Optional[str]:
+    """Returns user-specific squad file path if chat_id is provided."""
+    if not chat_id:
+        return None
+    clean_id = "".join(c for c in str(chat_id) if c.isalnum() or c in ("-", "_"))
+    if not clean_id:
+        return None
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data",
+        "users",
+        f"team_{clean_id}.json"
+    )
+
+def save_synced_team_to_disk(data: Dict[str, Any], chat_id: Optional[str] = None):
+    """Persists synced team data to disk so it survives app restarts. Supports per-user isolation."""
+    user_path = get_user_sync_path(chat_id)
+    if user_path:
+        paths = [user_path]
+    else:
+        paths = [SYNC_CACHE_PATH, LOCAL_REPO_SYNC_PATH]
+
+    for path in paths:
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
@@ -39,9 +59,15 @@ def save_synced_team_to_disk(data: Dict[str, Any]):
         except Exception as e:
             app_logger.error(f"Failed to save synced team to disk at {path}: {e}")
 
-def load_synced_team_from_disk() -> Optional[Dict[str, Any]]:
-    """Loads previously synced team data from disk if available."""
-    for path in [LOCAL_REPO_SYNC_PATH, SYNC_CACHE_PATH]:
+def load_synced_team_from_disk(chat_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Loads previously synced team data from disk if available. Checks user-specific squad first."""
+    paths_to_check = []
+    user_path = get_user_sync_path(chat_id)
+    if user_path:
+        paths_to_check.append(user_path)
+    paths_to_check.extend([LOCAL_REPO_SYNC_PATH, SYNC_CACHE_PATH])
+
+    for path in paths_to_check:
         if os.path.exists(path):
             try:
                 with open(path, "r", encoding="utf-8") as f:

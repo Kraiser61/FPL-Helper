@@ -55,8 +55,8 @@ function doPost(e) {
       return HtmlService.createHtmlOutput("OK");
     }
 
-    // 2. ANLIK RAPORLAR (⚡ 0.2 sn - fpl_analysis.json içindeki hazır rapor havuzundan çeker)
-    const data = fetchAnalysisJson();
+    // 2. ANLIK RAPORLAR (⚡ 0.2 sn - fpl_analysis.json veya kullanıcı analiz havuzundan çeker)
+    const data = fetchAnalysisJson(chatId);
     if (data) {
       // Önce Python tarafından fpl_analysis.json içine gömülen güncel rapor havuzuna bak
       if (data.reports && typeof data.reports === "object") {
@@ -144,7 +144,8 @@ function triggerGitHubActions(teamDataText, chatId) {
   const payload = {
     event_type: "telegram-trigger",
     client_payload: {
-      team_data: teamDataText
+      team_data: teamDataText,
+      chat_id: String(chatId || "")
     }
   };
   const options = {
@@ -179,7 +180,18 @@ function testGitHubDispatch() {
   }
 }
 
-function fetchAnalysisJson() {
+function fetchAnalysisJson(chatId) {
+  if (chatId) {
+    try {
+      const userUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/data/users/analysis_${chatId}.json?t=${new Date().getTime()}`;
+      const res = UrlFetchApp.fetch(userUrl, { muteHttpExceptions: true });
+      if (res.getResponseCode() === 200) {
+        return JSON.parse(res.getContentText());
+      }
+    } catch (e) {
+      Logger.log("fetchUserAnalysisJson error: " + e);
+    }
+  }
   try {
     const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/data/fpl_analysis.json?t=${new Date().getTime()}`;
     const res = UrlFetchApp.fetch(rawUrl, { muteHttpExceptions: true });

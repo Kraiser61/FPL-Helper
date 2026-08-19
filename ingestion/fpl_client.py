@@ -183,24 +183,24 @@ class FPLClient:
         data = await self._request("GET", url)
         return UserPickDTO(**data)
 
-    async def get_my_team(self, manager_id: int) -> UserTeamDTO:
+    async def get_my_team(self, manager_id: int, chat_id: Optional[str] = None) -> UserTeamDTO:
         """Fetches the authenticated manager's current team (requires auth) with fallback to locally synced team."""
         url = ENDPOINTS["my_team"].format(manager_id=manager_id)
-        app_logger.info(f"Fetching authenticated team data for Manager {manager_id}...")
+        app_logger.info(f"Fetching authenticated team data for Manager {manager_id} (chat_id: {chat_id})...")
         
         from ingestion.local_sync_server import load_synced_team_from_disk, save_synced_team_to_disk
         
         try:
             data = await self._request("GET", url, authenticated=True)
             if data and isinstance(data, dict) and "picks" in data:
-                save_synced_team_to_disk({"manager_id": manager_id, "team_data": data})
+                save_synced_team_to_disk({"manager_id": manager_id, "team_data": data}, chat_id=chat_id)
                 return UserTeamDTO(**data)
         except Exception as e:
             app_logger.warning(f"Authenticated my-team request failed ({e}). Checking local sync cache...")
-            synced = load_synced_team_from_disk()
+            synced = load_synced_team_from_disk(chat_id=chat_id)
             if synced:
                 if "team_data" in synced and "picks" in synced["team_data"] and synced["team_data"]["picks"]:
-                    app_logger.info("Successfully loaded squad from local browser sync cache.")
+                    app_logger.info(f"Successfully loaded squad from local browser sync cache (chat_id: {chat_id}).")
                     return UserTeamDTO(**synced["team_data"])
                 
                 # Check if raw_text exists from mobile DOM dump
@@ -211,7 +211,7 @@ class FPLClient:
                     parsed_td = parse_raw_text_to_team_data(raw_text, bootstrap.elements)
                     if parsed_td and parsed_td.get("picks"):
                         app_logger.info(f"Extracted {len(parsed_td['picks'])} picks from mobile page text.")
-                        save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_td})
+                        save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_td}, chat_id=chat_id)
                         return UserTeamDTO(**parsed_td)
             raise e
             

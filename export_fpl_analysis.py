@@ -481,6 +481,13 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         output_path = data_dir / "fpl_analysis.json"
     cached_path = output_path
 
+    # Telegram Chat ID from environment (if triggered via Telegram/GitHub Actions)
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    if chat_id:
+        user_cached_path = data_dir / "users" / f"analysis_{chat_id}.json"
+        if user_cached_path.exists():
+            cached_path = user_cached_path
+
     # Ensure SQLite database schema and tables (e.g. api_cache_meta) are initialized
     from data.database import db_manager
     db_manager.init_db()
@@ -520,7 +527,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             r = results[0]
             df = r.picks[r.picks["week"] == 1]
             picks = [{"element": int(row["id"]), "position": idx, "is_captain": row.get("captain") == 1, "is_vice_captain": row.get("vicecaptain") == 1} for idx, (_, row) in enumerate(df.iterrows(), 1)]
-            save_synced_team_to_disk({"manager_id": manager_id, "team_data": {"picks": picks, "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}}})
+            save_synced_team_to_disk({"manager_id": manager_id, "team_data": {"picks": picks, "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}}}, chat_id=chat_id)
             
             names = [f"<b>{row['name']}</b> ({row['team']})" for _, row in df.iterrows()]
             msg = (
@@ -628,7 +635,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             
             # Single transfer command: e.g. "/transfer Welbeck yerine Isak" or "transfer Haaland yerine Watkins"
             if ("yerine" in cmd_lower or "/sat" in cmd_lower or "->" in cmd_lower or cmd_lower.startswith("/transfer") or cmd_lower.startswith("transfer")):
-                synced = load_synced_team_from_disk()
+                synced = load_synced_team_from_disk(chat_id=chat_id)
                 if synced and "team_data" in synced and "picks" in synced["team_data"]:
                     picks = synced["team_data"]["picks"]
                     bootstrap = await fpl_client.get_bootstrap_static()
@@ -657,7 +664,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                                 if pick["element"] == out_p.id:
                                     pick["element"] = in_p.id
                                     break
-                            save_synced_team_to_disk({"manager_id": manager_id, "team_data": synced["team_data"]})
+                            save_synced_team_to_disk({"manager_id": manager_id, "team_data": synced["team_data"]}, chat_id=chat_id)
                             out_team = TEAM_NAMES.get(out_p.team, "")
                             in_team = TEAM_NAMES.get(in_p.team, "")
                             transfer_notification_text = (
@@ -668,21 +675,21 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                                 f"🤖 <i>Kraiser61 AI Engine</i>"
                             )
                             send_telegram_report(transfer_notification_text)
-                            app_logger.success(f"Updated squad transfer: {out_p.web_name} -> {in_p.web_name}")
+                            app_logger.success(f"Updated squad transfer: {out_p.web_name} -> {in_p.web_name} (chat_id: {chat_id})")
                             return {}
             elif raw_team_data.startswith("{"):
                 parsed_team = json.loads(raw_team_data)
                 if isinstance(parsed_team, dict):
                     if "team_data" in parsed_team:
-                        save_synced_team_to_disk(parsed_team)
+                        save_synced_team_to_disk(parsed_team, chat_id=chat_id)
                     elif "picks" in parsed_team:
-                        save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_team})
+                        save_synced_team_to_disk({"manager_id": manager_id, "team_data": parsed_team}, chat_id=chat_id)
             elif len(raw_team_data) > 5 and not matches_any(cmd_lower, ["analiz", "analyze", "solve", "taktik", "kadrom", "durum", "strateji", "rapor"]):
-                app_logger.info(f"Processing squad text from Telegram: {raw_team_data[:60]}...")
+                app_logger.info(f"Processing squad text from Telegram (chat_id: {chat_id}): {raw_team_data[:60]}...")
                 bootstrap = await fpl_client.get_bootstrap_static()
                 td = parse_raw_text_to_team_data(raw_team_data, bootstrap.elements)
                 if td and td.get("picks") and len(td["picks"]) >= 11:
-                    save_synced_team_to_disk({"manager_id": manager_id, "team_data": td})
+                    save_synced_team_to_disk({"manager_id": manager_id, "team_data": td}, chat_id=chat_id)
                     app_logger.success(f"Successfully saved {len(td['picks'])} picks from Telegram message.")
                     send_telegram_report(f"✅ <b>{len(td['picks'])} Kişilik Kadronuz Başarıyla Kaydedildi!</b>\n\nHaftalık analizinizi almak için <b>/analiz</b> yazabilirsiniz.\n\n🤖 <i>Kraiser61 AI Engine</i>")
                     return {}
@@ -720,7 +727,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     
     engine = StrategyEngine(fpl_client=fpl_client, risk_profile="balanced")
 
-    bundle = await engine.analyze(manager_id=manager_id, horizon_gws=horizon_gws)
+    bundle = await engine.analyze(manager_id=manager_id, horizon_gws=horizon_gws, chat_id=chat_id)
 
 
     cards_html = {
@@ -870,6 +877,20 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
     app_logger.success(f"Analysis JSON successfully generated at: {output_path}")
+
+    # If chat_id is present, also save isolated user-specific analysis JSON
+    if chat_id:
+        try:
+            users_dir = data_dir / "users"
+            users_dir.mkdir(parents=True, exist_ok=True)
+            clean_id = "".join(c for c in str(chat_id) if c.isalnum() or c in ("-", "_"))
+            if clean_id:
+                user_output_path = users_dir / f"analysis_{clean_id}.json"
+                with open(user_output_path, "w", encoding="utf-8") as f:
+                    json.dump(payload, f, ensure_ascii=False, indent=2)
+                app_logger.success(f"User analysis JSON saved for chat_id {chat_id} at: {user_output_path}")
+        except Exception as e:
+            app_logger.error(f"Failed to save user analysis JSON: {e}")
 
     # Send directly to Telegram if configured
     send_telegram_report(tg_report)

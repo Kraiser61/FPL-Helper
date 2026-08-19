@@ -115,9 +115,9 @@ class StrategyEngine:
         self.risk_profile = risk_profile
         self.solver_service = FPLSolverService()
 
-    async def analyze(self, manager_id: int, horizon_gws: int = 8) -> DecisionBundle:
+    async def analyze(self, manager_id: int, horizon_gws: int = 8, chat_id: Optional[str] = None) -> DecisionBundle:
         """Executes full Open-FPL-Solver pipeline and returns complete DecisionBundle."""
-        app_logger.info(f"Open-FPL-Solver strateji analizi çalıştırılıyor (Manager {manager_id}, Horizon {horizon_gws})...")
+        app_logger.info(f"Open-FPL-Solver strateji analizi çalıştırılıyor (Manager {manager_id}, Horizon {horizon_gws}, chat_id: {chat_id})...")
 
         # Step 0: Ensure fresh hybrid FPL Review CSV is available
         try:
@@ -146,7 +146,7 @@ class StrategyEngine:
         my_team = None
         manager_info = None
         try:
-            my_team = await self.fpl_client.get_my_team(manager_id)
+            my_team = await self.fpl_client.get_my_team(manager_id, chat_id=chat_id)
             manager_info = await self.fpl_client.get_manager_info(manager_id)
         except Exception as e:
             app_logger.warning(f"my-team / manager bilgisi alınamadı ({manager_id}): {e}")
