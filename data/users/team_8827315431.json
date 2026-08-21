@@ -69,7 +69,7 @@
         "is_vice_captain": false
       },
       {
-        "element": 374,
+        "element": 426,
         "position": 12,
         "is_captain": false,
         "is_vice_captain": false
@@ -95,7 +95,7 @@
     ],
     "chips": [],
     "transfers": {
-      "bank": 0,
+      "bank": 5,
       "limit": 1,
       "made": 0
     }

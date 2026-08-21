@@ -179,12 +179,9 @@
       }
     ],
     "transfers": {
-      "cost": 4,
-      "status": "unlimited",
-      "limit": null,
-      "made": 0,
-      "bank": 0,
-      "value": 1000
+      "bank": 5,
+      "limit": 1,
+      "made": 0
     }
   }
 }
