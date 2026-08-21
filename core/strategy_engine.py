@@ -157,18 +157,26 @@ class StrategyEngine:
 
         overall_rank = manager_info.get("summary_overall_rank") if manager_info else None
 
+        # Determine target gameweek for solver and decisions
+        next_event = next((e for e in bootstrap.events if e.is_next), None)
         current_event = next((e for e in bootstrap.events if e.is_current), None)
-        if not current_event:
-            current_event = next((e for e in bootstrap.events if e.is_next), bootstrap.events[0] if bootstrap.events else None)
-        current_gw = current_event.id if current_event else 1
+        
+        if next_event:
+            current_gw = next_event.id
+            is_preseason = False
+        elif current_event and not current_event.finished:
+            current_gw = current_event.id
+            is_preseason = False
+        else:
+            current_gw = 1
+            is_preseason = not bootstrap.events[0].finished if bootstrap.events else True
 
-        is_preseason = not bootstrap.events[0].finished if bootstrap.events else True
-        if is_preseason or raw_limit is None or raw_limit >= 90:
+        if is_preseason or (raw_limit is not None and raw_limit >= 90):
             free_transfers = 99
             transfers_str = "∞ Sınırsız Transfer (Sezon Öncesi)"
             ft_count = 99
         else:
-            free_transfers = raw_limit
+            free_transfers = raw_limit or 1
             transfers_str = f"{free_transfers} Serbest Transfer"
             ft_count = free_transfers
 
@@ -320,6 +328,8 @@ class StrategyEngine:
         )
 
         best_res = solver_results[0]
+        first_solve_gw = int(best_res.picks["week"].min()) if (best_res and hasattr(best_res, "picks") and not best_res.picks.empty) else current_gw
+        current_gw = first_solve_gw
 
         # Synchronize player analyses with FPL Review projected xP from solver picks
         if best_res and hasattr(best_res, "picks") and not best_res.picks.empty:
