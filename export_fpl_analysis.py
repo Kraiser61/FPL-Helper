@@ -4,6 +4,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 # Ensure root directory is on sys.path
 BASE_DIR = Path(__file__).resolve().parent
@@ -831,12 +832,12 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         send_telegram_report(unrecog_msg)
         return {}
 
-    # Step 0: Scrape live FPL Review projections and build hybrid CSV
+    # Step 0: Fetch live standardized FPL Form projections
     try:
-        from ingestion.fplreview_scraper import generate_hybrid_fplreview_csv
-        await generate_hybrid_fplreview_csv(horizon_gws=horizon_gws)
+        from ingestion.fplform_client import generate_fplform_csv
+        await generate_fplform_csv(horizon_gws=horizon_gws)
     except Exception as e:
-        app_logger.warning(f"FPL Review otomatik kazıma atlandı (yerleşik motor kullanılacak): {e}")
+        app_logger.warning(f"FPL Form projeksiyon güncellemesi atlandı: {e}")
     
     engine = StrategyEngine(fpl_client=fpl_client, risk_profile="balanced")
 
@@ -1268,9 +1269,9 @@ def solve_optimal_squad(horizon_gws: int = 5) -> str:
         app_logger.error(f"Optimal squad solve error: {e}")
         return f"❌ Optimal kadro hesaplanırken hata oluştu: {e}"
 
-def send_telegram_report(report_text: str):
-    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+def send_telegram_report(report_text: str, custom_chat_id: Optional[str] = None):
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or "8315284284:AAF4HjtfP1kW5rNUPRe5n1J1KBg4PsT83Jg"
+    chat_id = custom_chat_id or os.environ.get("TELEGRAM_CHAT_ID") or "8827315431"
     if not bot_token or not chat_id:
         app_logger.info("TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured in environment.")
         return False

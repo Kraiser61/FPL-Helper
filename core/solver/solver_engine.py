@@ -324,7 +324,7 @@ def solve_multi_period_fpl(data: Dict[str, Any], options: Dict[str, Any]) -> Lis
     fixtures = data["fixtures"]
 
     if preseason:
-        itb = 100.0
+        itb = float(options.get("budget", 100.0)) - float(options.get("target_itb", 0.0))
         initial_ft = 0
 
     players = merged_data.index.to_list()

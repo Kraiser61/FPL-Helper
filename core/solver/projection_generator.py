@@ -167,8 +167,8 @@ def generate_builtin_projections(
     logger.info(f"Hiyerarşik FPL Opta & Poisson-Elo Projeksiyon Motoru çalıştırılıyor ({horizon_gws} haftalık model)...")
 
     # 1. Fetch live FPL bootstrap-static and fixtures
-    bootstrap = cached_request("https://fantasy.premierleague.com/api/bootstrap-static/")
-    fixtures = cached_request("https://fantasy.premierleague.com/api/fixtures/")
+    bootstrap = cached_request("https://fantasy.premierleague.com/api/bootstrap-static/", force_refresh=force_refresh)
+    fixtures = cached_request("https://fantasy.premierleague.com/api/fixtures/", force_refresh=force_refresh)
 
     elements = bootstrap.get("elements", [])
     teams = {t["id"]: t for t in bootstrap.get("teams", [])}
@@ -184,9 +184,9 @@ def generate_builtin_projections(
             current_gw = e["id"]
             break
 
-    target_gws = list(range(current_gw, min(39, current_gw + horizon_gws)))
-    if not target_gws:
-        target_gws = list(range(1, horizon_gws + 1))
+    # Dynamic horizon buffer: ensure full coverage from GW1 through current_gw + horizon_gws + 4 (up to GW38)
+    max_gw = min(38, max(current_gw + horizon_gws + 4, 12))
+    target_gws = list(range(1, max_gw + 1))
 
     # 2. Build Team Hierarchies & Elo Map
     team_max_starts, team_primary_gk = compute_team_hierarchies(elements)
@@ -251,8 +251,12 @@ def generate_builtin_projections(
         # --- A. Live Health & Availability ---
         status = p.get("status", "a")
         chance_playing = p.get("chance_of_playing_next_round")
-        if chance_playing is None:
-            chance_factor = 1.0 if status == "a" else (0.0 if status in ("u", "i") else 0.75)
+        if status in ("u", "n"):
+            chance_factor = 0.0
+        elif status == "i" and (chance_playing is None or chance_playing == 0):
+            chance_factor = 0.0
+        elif chance_playing is None:
+            chance_factor = 1.0 if status == "a" else 0.75
         else:
             chance_factor = max(0.0, min(1.0, chance_playing / 100.0))
 
@@ -355,7 +359,9 @@ def generate_builtin_projections(
             gw_mins_total = 0
 
             # Progressive recovery for future gameweek availability
-            if i_gw == 0:
+            if status in ("u", "n"):
+                gw_avail = 0.0
+            elif i_gw == 0:
                 gw_avail = chance_factor
             else:
                 gw_avail = min(1.0, chance_factor + (i_gw * 0.25)) if chance_factor > 0 else 0.0

@@ -201,10 +201,10 @@ def load_config_files(config_paths: str) -> Dict[str, Any]:
     return merged_config
 
 
-def cached_request(url: str, custom_cache_file: Optional[Path] = None, timeout: float = 15.0) -> Any:
+def cached_request(url: str, custom_cache_file: Optional[Path] = None, timeout: float = 15.0, force_refresh: bool = False) -> Any:
     """
     Fetches JSON data from URL with caching support.
-    Returns cached data if available and fresh (< 5 mins old).
+    Returns cached data if available and fresh (< 5 mins old) unless force_refresh is True.
     Falls back to expired cache on network error.
     """
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -219,7 +219,7 @@ def cached_request(url: str, custom_cache_file: Optional[Path] = None, timeout: 
             cache = {}
 
     current_time = time.time()
-    if url in cache:
+    if not force_refresh and url in cache:
         cached_entry = cache[url]
         timestamp = cached_entry.get("timestamp", 0)
         if current_time - timestamp < CACHE_EXPIRATION:

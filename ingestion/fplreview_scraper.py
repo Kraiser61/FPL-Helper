@@ -302,7 +302,7 @@ async def generate_hybrid_fplreview_csv(
 
     # Step 1: Generate built-in full baseline projections (600+ players, full horizon)
     from core.solver.projection_generator import generate_builtin_projections
-    builtin_csv = generate_builtin_projections(horizon_gws=horizon_gws)
+    builtin_csv = generate_builtin_projections(horizon_gws=horizon_gws, force_refresh=force_refresh)
     df_baseline = pd.read_csv(builtin_csv)
     logger.info(f"Yerleşik matematiksel temel oluşturuldu ({len(df_baseline)} oyuncu).")
 

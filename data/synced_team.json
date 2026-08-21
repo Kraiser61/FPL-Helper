@@ -3,14 +3,14 @@
   "team_data": {
     "picks": [
       {
-        "element": 109,
+        "element": 497,
         "position": 1,
         "multiplier": 1,
         "is_captain": false,
         "is_vice_captain": false,
         "element_type": 1,
-        "selling_price": 45,
-        "purchase_price": 45
+        "selling_price": 40,
+        "purchase_price": 40
       },
       {
         "element": 387,
@@ -23,7 +23,7 @@
         "purchase_price": 65
       },
       {
-        "element": 113,
+        "element": 31,
         "position": 3,
         "multiplier": 1,
         "is_captain": false,
@@ -53,7 +53,7 @@
         "purchase_price": 50
       },
       {
-        "element": 367,
+        "element": 155,
         "position": 6,
         "multiplier": 1,
         "is_captain": false,
@@ -73,11 +73,11 @@
         "purchase_price": 70
       },
       {
-        "element": 452,
+        "element": 367,
         "position": 8,
         "multiplier": 1,
         "is_captain": false,
-        "is_vice_captain": true,
+        "is_vice_captain": false,
         "element_type": 3,
         "selling_price": 70,
         "purchase_price": 70
@@ -107,20 +107,20 @@
         "position": 11,
         "multiplier": 1,
         "is_captain": false,
-        "is_vice_captain": false,
+        "is_vice_captain": true,
         "element_type": 4,
         "selling_price": 155,
         "purchase_price": 155
       },
       {
-        "element": 497,
+        "element": 199,
         "position": 12,
         "multiplier": 0,
         "is_captain": false,
         "is_vice_captain": false,
         "element_type": 1,
-        "selling_price": 40,
-        "purchase_price": 40
+        "selling_price": 45,
+        "purchase_price": 45
       },
       {
         "element": 12,
@@ -143,17 +143,17 @@
         "purchase_price": 45
       },
       {
-        "element": 195,
+        "element": 492,
         "position": 15,
         "multiplier": 0,
         "is_captain": false,
         "is_vice_captain": false,
         "element_type": 4,
-        "selling_price": 50,
-        "purchase_price": 50
+        "selling_price": 55,
+        "purchase_price": 55
       }
     ],
-    "picks_last_updated": "2026-08-18T13:56:36.418337Z",
+    "picks_last_updated": "2026-08-21T16:46:53.041045Z",
     "chips": [
       {
         "id": 4,
@@ -183,8 +183,8 @@
       "status": "unlimited",
       "limit": null,
       "made": 0,
-      "bank": 5,
-      "value": 995
+      "bank": 0,
+      "value": 1000
     }
   }
 }
