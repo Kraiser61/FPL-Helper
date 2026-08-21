@@ -3,49 +3,49 @@
   "team_data": {
     "picks": [
       {
-        "element": 199,
+        "element": 250,
         "position": 1,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 497,
+        "element": 251,
         "position": 2,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 32,
+        "element": 61,
         "position": 3,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 417,
+        "element": 175,
         "position": 4,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 387,
+        "element": 423,
         "position": 5,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 388,
+        "element": 445,
         "position": 6,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 12,
+        "element": 113,
         "position": 7,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 13,
+        "element": 68,
         "position": 8,
         "is_captain": true,
         "is_vice_captain": false
@@ -63,37 +63,34 @@
         "is_vice_captain": false
       },
       {
-        "element": 367,
+        "element": 481,
         "position": 11,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 492,
+        "element": 374,
         "position": 12,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 411,
+        "element": 55,
         "position": 13,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 346,
+        "element": 248,
         "position": 14,
         "is_captain": false,
         "is_vice_captain": false
       },
       {
-        "element": 113,
+        "element": 411,
         "position": 15,
         "is_captain": false,
-        "is_vice_captain": false,
-        "element_type": 2,
-        "selling_price": 45,
-        "purchase_price": 45
+        "is_vice_captain": false
       }
     ],
     "chips": [],
