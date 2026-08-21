@@ -1053,15 +1053,18 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
     gain = action.get("net_xp_gain", 0.0)
 
     if t_ins_list and t_outs_list:
-        if len(t_ins_list) == 1 and len(t_outs_list) == 1:
+        min_len = min(len(t_ins_list), len(t_outs_list))
+        if min_len == 1:
             tin = get_pname(t_ins_list[0])
             tout = get_pname(t_outs_list[0])
             lines.append(f"🎯 <b>Transfer:</b> 🔴 {tout} ➔ 🟢 {tin}")
             lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
         else:
-            tins = ", ".join([get_pname(p) for p in t_ins_list if get_pname(p)])
-            touts = ", ".join([get_pname(p) for p in t_outs_list if get_pname(p)])
-            lines.append(f"🎯 <b>Çoklu Transfer:</b> 🔴 {touts} ➔ 🟢 {tins}")
+            lines.append(f"🎯 <b>Çoklu Transfer:</b>")
+            for i in range(min_len):
+                tin = get_pname(t_ins_list[i])
+                tout = get_pname(t_outs_list[i])
+                lines.append(f"   • 🔴 {tout} ➔ 🟢 {tin}")
             lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
     else:
         is_pre = meta.get("is_preseason", False) or gw == 1
