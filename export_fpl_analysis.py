@@ -564,7 +564,8 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         )
         if results:
             r = results[0]
-            df = r.picks[r.picks["week"] == 1]
+            first_w = int(r.picks["week"].min()) if not r.picks.empty else 1
+            df = r.picks[r.picks["week"] == first_w]
             picks = [{"element": int(row["id"]), "position": idx, "is_captain": row.get("captain") == 1, "is_vice_captain": row.get("vicecaptain") == 1} for idx, (_, row) in enumerate(df.iterrows(), 1)]
             save_synced_team_to_disk({"manager_id": manager_id, "team_data": {"picks": picks, "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}}}, chat_id=chat_id)
             
@@ -1233,7 +1234,8 @@ def solve_optimal_squad(horizon_gws: int = 5) -> str:
         if not results:
             return "❌ Optimal kadro çözülemedi."
         r = results[0]
-        df = r.picks[r.picks["week"] == 1]
+        first_w = int(r.picks["week"].min()) if not r.picks.empty else 1
+        df = r.picks[r.picks["week"] == first_w]
         
         gkps = df[df["pos"] == "GKP"]
         defs = df[df["pos"] == "DEF"]
@@ -1261,7 +1263,7 @@ def solve_optimal_squad(horizon_gws: int = 5) -> str:
         lines.append(f"⚙️ <b>OS:</b> {fmt_group(mids)}")
         lines.append(f"⚡ <b>FV:</b> {fmt_group(fwds)}\n")
         lines.append(f"💰 <b>Toplam Harcanan:</b> £{total_cost:.1f}m (Kalan Bütçe: £{100.0 - total_cost:.1f}m)")
-        lines.append(f"📈 <b>11 Kişilik Beklenen Puan (GW1):</b> <b>{total_xp:.1f} xP</b>")
+        lines.append(f"📈 <b>11 Kişilik Beklenen Puan (GW{first_w}):</b> <b>{total_xp:.1f} xP</b>")
         lines.append(f"📊 <b>{horizon_gws} Haftalık Toplam xP:</b> <b>{r.total_xp:.1f} xP</b>\n")
         lines.append("🤖 <i>Kraiser61 AI Engine</i>")
         return "\n".join(lines)
