@@ -193,17 +193,7 @@ function testGitHubDispatch() {
 }
 
 function fetchAnalysisJson(chatId) {
-  if (chatId) {
-    try {
-      const userUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/data/users/analysis_${chatId}.json?t=${new Date().getTime()}`;
-      const res = UrlFetchApp.fetch(userUrl, { muteHttpExceptions: true });
-      if (res.getResponseCode() === 200) {
-        return JSON.parse(res.getContentText());
-      }
-    } catch (e) {
-      Logger.log("fetchUserAnalysisJson error: " + e);
-    }
-  }
+  // Single User Mode: Always fetch primary data/fpl_analysis.json
   try {
     const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/data/fpl_analysis.json?t=${new Date().getTime()}`;
     const res = UrlFetchApp.fetch(rawUrl, { muteHttpExceptions: true });

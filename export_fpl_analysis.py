@@ -500,12 +500,8 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         output_path = data_dir / "fpl_analysis.json"
     cached_path = output_path
 
-    # Telegram Chat ID from environment (if triggered via Telegram/GitHub Actions)
+    # Single User Mode: Always prioritize primary fpl_analysis.json
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
-    if chat_id:
-        user_cached_path = data_dir / "users" / f"analysis_{chat_id}.json"
-        if user_cached_path.exists():
-            cached_path = user_cached_path
 
     # Ensure SQLite database schema and tables (e.g. api_cache_meta) are initialized
     from data.database import db_manager
@@ -1065,19 +1061,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
 
     app_logger.success(f"Analysis JSON successfully generated at: {output_path}")
 
-    # If chat_id is present, also save isolated user-specific analysis JSON
-    if chat_id:
-        try:
-            users_dir = data_dir / "users"
-            users_dir.mkdir(parents=True, exist_ok=True)
-            clean_id = "".join(c for c in str(chat_id) if c.isalnum() or c in ("-", "_"))
-            if clean_id:
-                user_output_path = users_dir / f"analysis_{clean_id}.json"
-                with open(user_output_path, "w", encoding="utf-8") as f:
-                    json.dump(payload, f, ensure_ascii=False, indent=2)
-                app_logger.success(f"User analysis JSON saved for chat_id {chat_id} at: {user_output_path}")
-        except Exception as e:
-            app_logger.error(f"Failed to save user analysis JSON: {e}")
+    # Single User Mode: Primary data/fpl_analysis.json is the single source of truth
 
     # Send directly to Telegram if configured
     send_telegram_report(tg_report)
