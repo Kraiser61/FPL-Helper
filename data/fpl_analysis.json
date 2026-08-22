@@ -3,7 +3,7 @@
     "manager_id": 3842372,
     "current_gw": 2,
     "is_preseason": false,
-    "generated_at": "2026-08-22 15:58:40",
+    "generated_at": "2026-08-22 16:04:56",
     "free_transfers": 1,
     "bank": 0.5,
     "chips_status": "2/4 Hazır (Bench Boost, Triple Captain)",
@@ -470,13 +470,13 @@
       "probability_1d": 0.375,
       "probability_5d": 0.921,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 4.5,
       "in_squad": true,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-      "action_text": "📉 Konsa (%92 Düşüş - 1-2 Gün (Bu Gece))"
+      "action_text": "📉 Konsa (%92 Düşüş - 1-2 Gün İçinde)"
     },
     {
       "player_id": 25,
@@ -489,13 +489,13 @@
       "probability_1d": 0.961,
       "probability_5d": 0.99,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 7.5,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-      "action_text": "📉 Gyökeres (%99 Düşüş - 1-2 Gün (Bu Gece))"
+      "action_text": "📉 Gyökeres (%99 Düşüş - 1-2 Gün İçinde)"
     },
     {
       "player_id": 26,
@@ -508,13 +508,13 @@
       "probability_1d": 0.866,
       "probability_5d": 0.99,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 7.5,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": true,
       "timing_advice": "⚡ ERKEN TRANSFER TAVSİYESİ: Havertz için bu gece %86 ihtimalle £0.1m artış bekleniyor ve sakatlık riski düşük (%0).",
-      "action_text": "📈 Havertz (%99 Artış - 1-2 Gün (Bu Gece))"
+      "action_text": "📈 Havertz (%99 Artış - 1-2 Gün İçinde)"
     },
     {
       "player_id": 452,
@@ -527,13 +527,13 @@
       "probability_1d": 0.99,
       "probability_5d": 0.99,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 7.0,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-      "action_text": "📉 Bruno G. (%99 Düşüş - 1-2 Gün (Bu Gece))"
+      "action_text": "📉 Bruno G. (%99 Düşüş - 1-2 Gün İçinde)"
     },
     {
       "player_id": 400,
@@ -546,13 +546,13 @@
       "probability_1d": 0.763,
       "probability_5d": 0.99,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 7.5,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-      "action_text": "📉 Doku (%99 Düşüş - 1-2 Gün (Bu Gece))"
+      "action_text": "📉 Doku (%99 Düşüş - 1-2 Gün İçinde)"
     },
     {
       "player_id": 499,
@@ -565,13 +565,13 @@
       "probability_1d": 0.981,
       "probability_5d": 0.99,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 5.5,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-      "action_text": "📉 Pedro Porro (%99 Düşüş - 1-2 Gün (Bu Gece))"
+      "action_text": "📉 Pedro Porro (%99 Düşüş - 1-2 Gün İçinde)"
     },
     {
       "player_id": 503,
@@ -584,13 +584,13 @@
       "probability_1d": 0.99,
       "probability_5d": 0.99,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 5.0,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-      "action_text": "📉 Van de Ven (%99 Düşüş - 1-2 Gün (Bu Gece))"
+      "action_text": "📉 Van de Ven (%99 Düşüş - 1-2 Gün İçinde)"
     },
     {
       "player_id": 505,
@@ -603,13 +603,13 @@
       "probability_1d": 0.916,
       "probability_5d": 0.99,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 4.5,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-      "action_text": "📉 Spence (%99 Düşüş - 1-2 Gün (Bu Gece))"
+      "action_text": "📉 Spence (%99 Düşüş - 1-2 Gün İçinde)"
     },
     {
       "player_id": 15,
@@ -622,13 +622,13 @@
       "probability_1d": 0.535,
       "probability_5d": 0.975,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 6.5,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📌 TOP 10K ZAMANLAMA KURALI: Ødegaard için fiyat artış riski (%53) veya sakatlık riski (%0) Cuma basın toplantılarını beklemeyi gerektiriyor.",
-      "action_text": "📈 Ødegaard (%97 Artış - 1-2 Gün (Bu Gece))"
+      "action_text": "📈 Ødegaard (%97 Artış - 1-2 Gün İçinde)"
     },
     {
       "player_id": 9,
@@ -641,13 +641,13 @@
       "probability_1d": 0.376,
       "probability_5d": 0.921,
       "likelihood": "high",
-      "horizon_text": "1-2 Gün (Bu Gece)",
+      "horizon_text": "1-2 Gün İçinde",
       "price": 5.5,
       "in_squad": false,
       "urgency": "high",
       "should_early_transfer": false,
       "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-      "action_text": "📉 Hincapie (%92 Düşüş - 1-2 Gün (Bu Gece))"
+      "action_text": "📉 Hincapie (%92 Düşüş - 1-2 Gün İçinde)"
     },
     {
       "player_id": 14,
@@ -941,7 +941,7 @@
       "kickoff_time": "2026-08-24T19:00:00+00:00"
     }
   ],
-  "matches_report": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (🔴 Canlı)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
+  "matches_report": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (Bitti)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
   "telegram_report": "🦁 <b>FPL STRATEJİ RAPORU (GW2)</b>\n<i>Yapay Zeka & Poisson-Elo Projeksiyon Çözümü</i>\n\n👑 <b>Kaptan:</b> Szoboszlai (LIV)\n🥈 <b>2. Kaptan:</b> Enzo (CHE)\n\n🎯 <b>Transfer:</b> 🔴 Benitez (CRY) ➔ 🟢 Leno (FUL)\n   <i>Beklenen Net Kazanç: +2.26 xPts</i>\n\n📋 <b>İdeal 11 (3-5-2) - Toplam xP: 38.4:</b>\n🧤 <b>KL:</b> Leno (FUL)\n🛡️ <b>DF:</b> Guéhi (MCI), Dalot (MUN), O'Reilly (MCI)\n⚙️ <b>OS:</b> Szoboszlai (LIV), Enzo (CHE), Gakpo (LIV), Saka (ARS), Rice (ARS)\n⚡ <b>FV:</b> Haaland (MCI), Calvert-Lewin (LEE)\n🪑 <b>Yedekler:</b> Dubravka (TOT), Cash (AVL), Awoniyi (COV), Konsa (ARS)\n\n🚀 <b>Çip Stratejisi:</b> 💡 Chip Sakla: Mevcut haftalarda standart transfer ve Roll FT stratejisi önerilir.\n",
   "reports": {
     "analiz": "🦁 <b>FPL STRATEJİ RAPORU (GW2)</b>\n<i>Yapay Zeka & Poisson-Elo Projeksiyon Çözümü</i>\n\n👑 <b>Kaptan:</b> Szoboszlai (LIV)\n🥈 <b>2. Kaptan:</b> Enzo (CHE)\n\n🎯 <b>Transfer:</b> 🔴 Benitez (CRY) ➔ 🟢 Leno (FUL)\n   <i>Beklenen Net Kazanç: +2.26 xPts</i>\n\n📋 <b>İdeal 11 (3-5-2) - Toplam xP: 38.4:</b>\n🧤 <b>KL:</b> Leno (FUL)\n🛡️ <b>DF:</b> Guéhi (MCI), Dalot (MUN), O'Reilly (MCI)\n⚙️ <b>OS:</b> Szoboszlai (LIV), Enzo (CHE), Gakpo (LIV), Saka (ARS), Rice (ARS)\n⚡ <b>FV:</b> Haaland (MCI), Calvert-Lewin (LEE)\n🪑 <b>Yedekler:</b> Dubravka (TOT), Cash (AVL), Awoniyi (COV), Konsa (ARS)\n\n🚀 <b>Çip Stratejisi:</b> 💡 Chip Sakla: Mevcut haftalarda standart transfer ve Roll FT stratejisi önerilir.\n",
@@ -951,11 +951,11 @@
     "yardim": "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n\n🔹 <b>/analiz</b> ➔ Kayıtlı kadronuzun haftalık tam strateji analizi (Kaptan, İdeal 11, Transfer, Çip, Sakatlıklar).\n🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve başlama saatleri (TSİ).\n🔹 <b>/optimal</b> (veya <b>/ruyatimi</b>) ➔ £100m bütçe ile 590 oyuncu arasından çözülen en ideal 15 kişilik kadro.\n🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.\n🔹 <b>/sakatlar</b> (veya <b>/revir</b>) ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık durumu.\n🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.\n🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.\n🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadrodan tek bir oyuncuyu değiştirir (Örn: <code>/transfer Welbeck yerine Isak</code>).\n🔹 <b>/kadro [15 Oyuncu]</b> ➔ Tüm 15 kişilik kadronuzu sıfırdan kaydeder.\n🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir.",
     "help": "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n\n🔹 <b>/analiz</b> ➔ Kayıtlı kadronuzun haftalık tam strateji analizi (Kaptan, İdeal 11, Transfer, Çip, Sakatlıklar).\n🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve başlama saatleri (TSİ).\n🔹 <b>/optimal</b> (veya <b>/ruyatimi</b>) ➔ £100m bütçe ile 590 oyuncu arasından çözülen en ideal 15 kişilik kadro.\n🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.\n🔹 <b>/sakatlar</b> (veya <b>/revir</b>) ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık durumu.\n🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.\n🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.\n🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadrodan tek bir oyuncuyu değiştirir (Örn: <code>/transfer Welbeck yerine Isak</code>).\n🔹 <b>/kadro [15 Oyuncu]</b> ➔ Tüm 15 kişilik kadronuzu sıfırdan kaydeder.\n🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir.",
     "komutlar": "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n\n🔹 <b>/analiz</b> ➔ Kayıtlı kadronuzun haftalık tam strateji analizi (Kaptan, İdeal 11, Transfer, Çip, Sakatlıklar).\n🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve başlama saatleri (TSİ).\n🔹 <b>/optimal</b> (veya <b>/ruyatimi</b>) ➔ £100m bütçe ile 590 oyuncu arasından çözülen en ideal 15 kişilik kadro.\n🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.\n🔹 <b>/sakatlar</b> (veya <b>/revir</b>) ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık durumu.\n🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.\n🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.\n🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadrodan tek bir oyuncuyu değiştirir (Örn: <code>/transfer Welbeck yerine Isak</code>).\n🔹 <b>/kadro [15 Oyuncu]</b> ➔ Tüm 15 kişilik kadronuzu sıfırdan kaydeder.\n🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir.",
-    "maclar": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (🔴 Canlı)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
-    "maçlar": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (🔴 Canlı)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
-    "fikstur": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (🔴 Canlı)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
-    "fikstür": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (🔴 Canlı)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
-    "program": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (🔴 Canlı)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
+    "maclar": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (Bitti)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
+    "maçlar": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (Bitti)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
+    "fikstur": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (Bitti)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
+    "fikstür": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (Bitti)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
+    "program": "🦁 <b>PREMIER LEAGUE GW1 MAÇ PROGRAMI (TSİ)</b>\n\n🗓️ <b>21 Ağustos Cuma</b>\n• <b>22:00</b> ➔ Arsenal <b>3 - 0</b> Coventry (Bitti)\n\n🗓️ <b>22 Ağustos Cumartesi</b>\n• <b>14:30</b> ➔ Hull <b>2 - 0</b> Man Utd (🔴 Canlı)\n• <b>17:00</b> ➔ <b>Everton</b> vs <b>Crystal Palace</b>\n• <b>17:00</b> ➔ <b>Ipswich</b> vs <b>Sunderland</b>\n• <b>17:00</b> ➔ <b>Nott'm Forest</b> vs <b>Leeds</b>\n• <b>19:30</b> ➔ <b>Brentford</b> vs <b>Tottenham</b>\n\n🗓️ <b>23 Ağustos Pazar</b>\n• <b>16:00</b> ➔ <b>Brighton</b> vs <b>Aston Villa</b>\n• <b>16:00</b> ➔ <b>Man City</b> vs <b>Bournemouth</b>\n• <b>18:30</b> ➔ <b>Newcastle</b> vs <b>Liverpool</b>\n\n🗓️ <b>24 Ağustos Pazartesi</b>\n• <b>22:00</b> ➔ <b>Fulham</b> vs <b>Chelsea</b>\n\n⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>",
     "kaptan": "👑 <b>KAPTAN & DİFERANSİYEL RADARI (GW2)</b>\n\n🥇 <b>1. Kaptan Tercihi:</b> Szoboszlai (LIV)\n   • Beklenen Puan: <b>4.4 xP</b> (Kaptanlık: <b>8.9 xP</b>)\n   • Patlama İndeksi: <b>3.2/10</b>\n\n🥈 <b>2. Kaptan (Güvenli):</b> Enzo (CHE)\n   • Beklenen Puan: <b>4.1 xP</b>\n\n🔥 <b>Diferansiyel Adayı (Düşük Sahiplik):</b>\n   • <b>Enzo (CHE)</b> - %5.1 Sahiplik (4.1 xP)\n",
     "captain": "👑 <b>KAPTAN & DİFERANSİYEL RADARI (GW2)</b>\n\n🥇 <b>1. Kaptan Tercihi:</b> Szoboszlai (LIV)\n   • Beklenen Puan: <b>4.4 xP</b> (Kaptanlık: <b>8.9 xP</b>)\n   • Patlama İndeksi: <b>3.2/10</b>\n\n🥈 <b>2. Kaptan (Güvenli):</b> Enzo (CHE)\n   • Beklenen Puan: <b>4.1 xP</b>\n\n🔥 <b>Diferansiyel Adayı (Düşük Sahiplik):</b>\n   • <b>Enzo (CHE)</b> - %5.1 Sahiplik (4.1 xP)\n",
     "sakatlar": "🏥 <b>SQUAD SAĞLIK & SAKATLIK RADARI</b>\n\n✅ <b>Harika Haber:</b> Kadronuzdaki 15 oyuncunun tamamı %100 oynamaya hazır (Available) durumda!\n",
@@ -967,8 +967,8 @@
     "swings": "📈 <b>FİKSTÜR SALINCAĞI (ÖNÜMÜZDEKİ 5 HAFTA)</b>\n\n🔄 <b>Önemli Fikstür Dönüşü Yaşayan Takımlar:</b>\n  1. <b>Liverpool</b> ➔ Yakın Zorluk: <b>2.3</b> | İleri Zorluk: <b>3.3</b>\n  2. <b>Brentford</b> ➔ Yakın Zorluk: <b>2.7</b> | İleri Zorluk: <b>4.0</b>\n  3. <b>Leeds</b> ➔ Yakın Zorluk: <b>2.7</b> | İleri Zorluk: <b>4.0</b>\n  4. <b>Arsenal</b> ➔ Yakın Zorluk: <b>3.7</b> | İleri Zorluk: <b>2.7</b>\n",
     "kolayfikstur": "📈 <b>FİKSTÜR SALINCAĞI (ÖNÜMÜZDEKİ 5 HAFTA)</b>\n\n🔄 <b>Önemli Fikstür Dönüşü Yaşayan Takımlar:</b>\n  1. <b>Liverpool</b> ➔ Yakın Zorluk: <b>2.3</b> | İleri Zorluk: <b>3.3</b>\n  2. <b>Brentford</b> ➔ Yakın Zorluk: <b>2.7</b> | İleri Zorluk: <b>4.0</b>\n  3. <b>Leeds</b> ➔ Yakın Zorluk: <b>2.7</b> | İleri Zorluk: <b>4.0</b>\n  4. <b>Arsenal</b> ➔ Yakın Zorluk: <b>3.7</b> | İleri Zorluk: <b>2.7</b>\n",
     "kolayfikstür": "📈 <b>FİKSTÜR SALINCAĞI (ÖNÜMÜZDEKİ 5 HAFTA)</b>\n\n🔄 <b>Önemli Fikstür Dönüşü Yaşayan Takımlar:</b>\n  1. <b>Liverpool</b> ➔ Yakın Zorluk: <b>2.3</b> | İleri Zorluk: <b>3.3</b>\n  2. <b>Brentford</b> ➔ Yakın Zorluk: <b>2.7</b> | İleri Zorluk: <b>4.0</b>\n  3. <b>Leeds</b> ➔ Yakın Zorluk: <b>2.7</b> | İleri Zorluk: <b>4.0</b>\n  4. <b>Arsenal</b> ➔ Yakın Zorluk: <b>3.7</b> | İleri Zorluk: <b>2.7</b>\n",
-    "fiyat": "💰 <b>5 GÜNLÜK FİYAT DEĞİŞİM RADARI</b>\n<i>Önümüzdeki 5 günlük transfer trendi ve fiyat değişim olasılıkları:</i>\n\n📈 <b>FİYAT ARTIŞI BEKLENENLER (+£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>\n  • <b>Havertz (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Ødegaard (ARS)</b> - £6.5m ➔ <b>%97</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>White (ARS)</b> - £5.5m ➔ <b>%83</b>\n  • <b>Calafiori (ARS)</b> - £5.5m ➔ <b>%71</b>\n\n📉 <b>FİYAT DÜŞÜŞÜ BEKLENENLER (-£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>\n  • <b>Konsa (ARS)</b> - £4.5m ➔ <b>%92</b> 👤 <i>(Kadronuzda!)</i>\n  • <b>Gyökeres (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Bruno G. (ARS)</b> - £7.0m ➔ <b>%99</b>\n  • <b>Doku (MCI)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Pedro Porro (TOT)</b> - £5.5m ➔ <b>%99</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>Eze (ARS)</b> - £6.5m ➔ <b>%83</b>\n  • <b>Yates (NFO)</b> - £4.5m ➔ <b>%69</b>\n\n💡 <b>Strateji Tavsiyesi:</b>\n<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>",
-    "price": "💰 <b>5 GÜNLÜK FİYAT DEĞİŞİM RADARI</b>\n<i>Önümüzdeki 5 günlük transfer trendi ve fiyat değişim olasılıkları:</i>\n\n📈 <b>FİYAT ARTIŞI BEKLENENLER (+£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>\n  • <b>Havertz (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Ødegaard (ARS)</b> - £6.5m ➔ <b>%97</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>White (ARS)</b> - £5.5m ➔ <b>%83</b>\n  • <b>Calafiori (ARS)</b> - £5.5m ➔ <b>%71</b>\n\n📉 <b>FİYAT DÜŞÜŞÜ BEKLENENLER (-£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>\n  • <b>Konsa (ARS)</b> - £4.5m ➔ <b>%92</b> 👤 <i>(Kadronuzda!)</i>\n  • <b>Gyökeres (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Bruno G. (ARS)</b> - £7.0m ➔ <b>%99</b>\n  • <b>Doku (MCI)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Pedro Porro (TOT)</b> - £5.5m ➔ <b>%99</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>Eze (ARS)</b> - £6.5m ➔ <b>%83</b>\n  • <b>Yates (NFO)</b> - £4.5m ➔ <b>%69</b>\n\n💡 <b>Strateji Tavsiyesi:</b>\n<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>",
-    "zam": "💰 <b>5 GÜNLÜK FİYAT DEĞİŞİM RADARI</b>\n<i>Önümüzdeki 5 günlük transfer trendi ve fiyat değişim olasılıkları:</i>\n\n📈 <b>FİYAT ARTIŞI BEKLENENLER (+£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>\n  • <b>Havertz (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Ødegaard (ARS)</b> - £6.5m ➔ <b>%97</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>White (ARS)</b> - £5.5m ➔ <b>%83</b>\n  • <b>Calafiori (ARS)</b> - £5.5m ➔ <b>%71</b>\n\n📉 <b>FİYAT DÜŞÜŞÜ BEKLENENLER (-£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>\n  • <b>Konsa (ARS)</b> - £4.5m ➔ <b>%92</b> 👤 <i>(Kadronuzda!)</i>\n  • <b>Gyökeres (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Bruno G. (ARS)</b> - £7.0m ➔ <b>%99</b>\n  • <b>Doku (MCI)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Pedro Porro (TOT)</b> - £5.5m ➔ <b>%99</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>Eze (ARS)</b> - £6.5m ➔ <b>%83</b>\n  • <b>Yates (NFO)</b> - £4.5m ➔ <b>%69</b>\n\n💡 <b>Strateji Tavsiyesi:</b>\n<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>"
+    "fiyat": "💰 <b>5 GÜNLÜK FİYAT DEĞİŞİM RADARI</b>\n<i>Önümüzdeki 5 günlük transfer trendi ve fiyat değişim olasılıkları:</i>\n\n📈 <b>FİYAT ARTIŞI BEKLENENLER (+£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>\n  • <b>Havertz (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Ødegaard (ARS)</b> - £6.5m ➔ <b>%97</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>White (ARS)</b> - £5.5m ➔ <b>%83</b>\n  • <b>Calafiori (ARS)</b> - £5.5m ➔ <b>%71</b>\n\n📉 <b>FİYAT DÜŞÜŞÜ BEKLENENLER (-£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>\n  • <b>Konsa (ARS)</b> - £4.5m ➔ <b>%92</b> 👤 <i>(Kadronuzda!)</i>\n  • <b>Gyökeres (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Bruno G. (ARS)</b> - £7.0m ➔ <b>%99</b>\n  • <b>Doku (MCI)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Pedro Porro (TOT)</b> - £5.5m ➔ <b>%99</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>Eze (ARS)</b> - £6.5m ➔ <b>%83</b>\n  • <b>Yates (NFO)</b> - £4.5m ➔ <b>%69</b>\n\n💡 <b>Strateji Tavsiyesi:</b>\n<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>",
+    "price": "💰 <b>5 GÜNLÜK FİYAT DEĞİŞİM RADARI</b>\n<i>Önümüzdeki 5 günlük transfer trendi ve fiyat değişim olasılıkları:</i>\n\n📈 <b>FİYAT ARTIŞI BEKLENENLER (+£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>\n  • <b>Havertz (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Ødegaard (ARS)</b> - £6.5m ➔ <b>%97</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>White (ARS)</b> - £5.5m ➔ <b>%83</b>\n  • <b>Calafiori (ARS)</b> - £5.5m ➔ <b>%71</b>\n\n📉 <b>FİYAT DÜŞÜŞÜ BEKLENENLER (-£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>\n  • <b>Konsa (ARS)</b> - £4.5m ➔ <b>%92</b> 👤 <i>(Kadronuzda!)</i>\n  • <b>Gyökeres (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Bruno G. (ARS)</b> - £7.0m ➔ <b>%99</b>\n  • <b>Doku (MCI)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Pedro Porro (TOT)</b> - £5.5m ➔ <b>%99</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>Eze (ARS)</b> - £6.5m ➔ <b>%83</b>\n  • <b>Yates (NFO)</b> - £4.5m ➔ <b>%69</b>\n\n💡 <b>Strateji Tavsiyesi:</b>\n<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>",
+    "zam": "💰 <b>5 GÜNLÜK FİYAT DEĞİŞİM RADARI</b>\n<i>Önümüzdeki 5 günlük transfer trendi ve fiyat değişim olasılıkları:</i>\n\n📈 <b>FİYAT ARTIŞI BEKLENENLER (+£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>\n  • <b>Havertz (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Ødegaard (ARS)</b> - £6.5m ➔ <b>%97</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>White (ARS)</b> - £5.5m ➔ <b>%83</b>\n  • <b>Calafiori (ARS)</b> - £5.5m ➔ <b>%71</b>\n\n📉 <b>FİYAT DÜŞÜŞÜ BEKLENENLER (-£0.1m)</b>\n🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>\n  • <b>Konsa (ARS)</b> - £4.5m ➔ <b>%92</b> 👤 <i>(Kadronuzda!)</i>\n  • <b>Gyökeres (ARS)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Bruno G. (ARS)</b> - £7.0m ➔ <b>%99</b>\n  • <b>Doku (MCI)</b> - £7.5m ➔ <b>%99</b>\n  • <b>Pedro Porro (TOT)</b> - £5.5m ➔ <b>%99</b>\n🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>\n  • <b>Eze (ARS)</b> - £6.5m ➔ <b>%83</b>\n  • <b>Yates (NFO)</b> - £4.5m ➔ <b>%69</b>\n\n💡 <b>Strateji Tavsiyesi:</b>\n<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>"
   }
 }

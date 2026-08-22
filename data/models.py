@@ -132,7 +132,9 @@ class FixtureDTO(BaseModel):
     team_h_score: Optional[int] = None
     team_a_score: Optional[int] = None
     finished: bool = False
+    finished_provisional: bool = False
     started: bool = False
+    minutes: int = 0
     kickoff_time: Optional[datetime] = None
     stats: List[FixtureStatDTO] = Field(default_factory=list)
 

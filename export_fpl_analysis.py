@@ -68,6 +68,25 @@ def format_kickoff_tr(dt_val) -> tuple[str, str, str]:
     sort_key = dt_tr.strftime("%Y-%m-%d %H:%M")
     return (day_str, time_str, sort_key)
 
+def is_fixture_finished(fix: dict) -> bool:
+    if fix.get("finished") or fix.get("finished_provisional") or fix.get("minutes", 0) >= 90:
+        return True
+    if fix.get("started"):
+        ko_str = fix.get("kickoff_time")
+        if ko_str:
+            try:
+                from datetime import datetime, timezone
+                clean_str = ko_str.replace("Z", "+00:00")
+                ko_dt = datetime.fromisoformat(clean_str)
+                if ko_dt.tzinfo is None:
+                    ko_dt = ko_dt.replace(tzinfo=timezone.utc)
+                now_utc = datetime.now(timezone.utc)
+                if (now_utc - ko_dt).total_seconds() > 110 * 60:
+                    return True
+            except Exception:
+                pass
+    return False
+
 def format_telegram_matches_report(fixtures: list, gw_num: int = 1) -> str:
     if not fixtures:
         return f"⚠️ GW{gw_num} için fikstür verisi bulunamadı."
@@ -93,13 +112,13 @@ def format_telegram_matches_report(fixtures: list, gw_num: int = 1) -> str:
             h_team = fix.get("team_h_name") or TEAM_FULL_NAMES.get(h_id, f"Takım {h_id}")
             a_team = fix.get("team_a_name") or TEAM_FULL_NAMES.get(a_id, f"Takım {a_id}")
             
-            finished = fix.get("finished", False)
+            finished = is_fixture_finished(fix)
             started = fix.get("started", False)
             h_score = fix.get("team_h_score")
             a_score = fix.get("team_a_score")
 
             if finished and h_score is not None and a_score is not None:
-                match_str = f"• <b>{time_str}</b> ➔ {h_team} <b>{h_score} - {a_score}</b> {a_team} (MS)"
+                match_str = f"• <b>{time_str}</b> ➔ {h_team} <b>{h_score} - {a_score}</b> {a_team} (Bitti)"
             elif started and h_score is not None and a_score is not None:
                 match_str = f"• <b>{time_str}</b> ➔ {h_team} <b>{h_score} - {a_score}</b> {a_team} (🔴 Canlı)"
             else:
@@ -1259,7 +1278,7 @@ def format_telegram_price_report(payload: dict) -> str:
     med_rises = [a for a in rises if a not in high_rises and a.get("probability", 0) >= 0.45]
 
     if high_rises:
-        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>")
+        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>")
         for a in high_rises[:5]:
             p_name = a.get("web_name") or a.get("name", "Oyuncu")
             t_id = a.get("team") or a.get("team_id")
@@ -1269,7 +1288,7 @@ def format_telegram_price_report(payload: dict) -> str:
             squad_flag = " 👤 <i>(Kadronuzda)</i>" if a.get("in_squad") else ""
             lines.append(f"  • <b>{p_name}{team_str}</b> - {price_str} ➔ <b>%{prob}</b>{squad_flag}")
     else:
-        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b> <i>Acil artış adayı yok</i>")
+        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b> <i>Acil artış adayı yok</i>")
 
     if med_rises:
         lines.append("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>")
@@ -1292,7 +1311,7 @@ def format_telegram_price_report(payload: dict) -> str:
     med_falls = [a for a in falls if a not in high_falls and a.get("probability", 0) >= 0.45]
 
     if high_falls:
-        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>")
+        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>")
         for a in high_falls[:5]:
             p_name = a.get("web_name") or a.get("name", "Oyuncu")
             t_id = a.get("team") or a.get("team_id")
@@ -1302,7 +1321,7 @@ def format_telegram_price_report(payload: dict) -> str:
             squad_flag = " 👤 <i>(Kadronuzda!)</i>" if a.get("in_squad") else ""
             lines.append(f"  • <b>{p_name}{team_str}</b> - {price_str} ➔ <b>%{prob}</b>{squad_flag}")
     else:
-        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b> <i>Acil düşüş adayı yok</i>")
+        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b> <i>Acil düşüş adayı yok</i>")
 
     if med_falls:
         lines.append("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>")

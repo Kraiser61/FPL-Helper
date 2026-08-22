@@ -318,7 +318,7 @@ function formatPriceReport(payload) {
   const medRises = rises.filter(a => !highRises.includes(a) && (a.probability || 0) >= 0.45);
 
   if (highRises.length > 0) {
-    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>");
+    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>");
     for (let i = 0; i < Math.min(highRises.length, 5); i++) {
       const a = highRises[i];
       const pName = a.web_name || a.name || "Oyuncu";
@@ -330,7 +330,7 @@ function formatPriceReport(payload) {
       lines.push(`  • <b>${pName}${teamStr}</b> - ${priceStr} ➔ <b>%${prob}</b>${squadFlag}`);
     }
   } else {
-    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b> <i>Acil artış adayı yok</i>");
+    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b> <i>Acil artış adayı yok</i>");
   }
 
   if (medRises.length > 0) {
@@ -355,7 +355,7 @@ function formatPriceReport(payload) {
   const medFalls = falls.filter(a => !highFalls.includes(a) && (a.probability || 0) >= 0.45);
 
   if (highFalls.length > 0) {
-    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>");
+    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b>");
     for (let i = 0; i < Math.min(highFalls.length, 5); i++) {
       const a = highFalls[i];
       const pName = a.web_name || a.name || "Oyuncu";
@@ -367,7 +367,7 @@ function formatPriceReport(payload) {
       lines.push(`  • <b>${pName}${teamStr}</b> - ${priceStr} ➔ <b>%${prob}</b>${squadFlag}`);
     }
   } else {
-    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b> <i>Acil düşüş adayı yok</i>");
+    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün İçinde):</b> <i>Acil düşüş adayı yok</i>");
   }
 
   if (medFalls.length > 0) {
@@ -390,6 +390,16 @@ function formatPriceReport(payload) {
   lines.push("<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>");
   
   return lines.join("\n");
+}
+
+function isFixtureFinished(f) {
+  if (f.finished || f.finished_provisional || (f.minutes && f.minutes >= 90)) return true;
+  if (f.started && f.kickoff_time) {
+    var ko = new Date(f.kickoff_time);
+    var now = new Date();
+    if ((now.getTime() - ko.getTime()) > (110 * 60 * 1000)) return true;
+  }
+  return false;
 }
 
 function formatMatchesReport(payload) {
@@ -442,8 +452,9 @@ function formatMatchesReport(payload) {
       const hTeam = f.team_h_name || TEAM_FULL_NAMES[f.team_h] || `Takım ${f.team_h}`;
       const aTeam = f.team_a_name || TEAM_FULL_NAMES[f.team_a] || `Takım ${f.team_a}`;
       
-      if (f.finished && f.team_h_score !== null && f.team_a_score !== null) {
-        lines.push(`• <b>${item.time}</b> ➔ ${hTeam} <b>${f.team_h_score} - ${f.team_a_score}</b> ${aTeam} (MS)`);
+      const finished = isFixtureFinished(f);
+      if (finished && f.team_h_score !== null && f.team_a_score !== null) {
+        lines.push(`• <b>${item.time}</b> ➔ ${hTeam} <b>${f.team_h_score} - ${f.team_a_score}</b> ${aTeam} (Bitti)`);
       } else if (f.started && f.team_h_score !== null && f.team_a_score !== null) {
         lines.push(`• <b>${item.time}</b> ➔ ${hTeam} <b>${f.team_h_score} - ${f.team_a_score}</b> ${aTeam} (🔴 Canlı)`);
       } else {

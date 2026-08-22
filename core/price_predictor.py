@@ -206,7 +206,7 @@ class PricePredictor:
             if effective_rise_p >= threshold:
                 is_high = (rise_p_1d >= 0.80 or rise_p_5d >= 0.90)
                 likelihood = "high" if is_high else "medium"
-                horizon_text = "1-2 Gün (Bu Gece)" if is_high else "3-5 Gün İçinde"
+                horizon_text = "1-2 Gün İçinde" if is_high else "3-5 Gün İçinde"
                 should_early, timing_text = cls.should_make_early_transfer(p, hours_to_deadline=hours_to_deadline)
                 alerts.append({
                     "player_id": p.id,
@@ -232,7 +232,7 @@ class PricePredictor:
             if effective_fall_p >= threshold:
                 is_high = (fall_p_1d >= 0.80 or fall_p_5d >= 0.90)
                 likelihood = "high" if is_high else "medium"
-                horizon_text = "1-2 Gün (Bu Gece)" if is_high else "3-5 Gün İçinde"
+                horizon_text = "1-2 Gün İçinde" if is_high else "3-5 Gün İçinde"
                 alerts.append({
                     "player_id": p.id,
                     "web_name": p.web_name,
