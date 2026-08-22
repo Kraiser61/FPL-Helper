@@ -2,7 +2,8 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -491,6 +492,38 @@ def format_html_health_radar(bundle: DecisionBundle) -> str:
 
     return HTML_HEADER + "".join(body) + HTML_FOOTER
 
+def is_analysis_fresh(cached_data: dict, max_hours: float = 2.0) -> bool:
+    if not cached_data or not cached_data.get("meta"):
+        return False
+    meta = cached_data["meta"]
+    gen_epoch = meta.get("generated_at_epoch")
+    if gen_epoch:
+        diff_hours = (time.time() - gen_epoch) / 3600.0
+        return diff_hours <= max_hours
+    gen_iso = meta.get("generated_at_iso") or meta.get("generated_at")
+    if gen_iso:
+        try:
+            from datetime import datetime, timezone
+            clean_str = str(gen_iso).replace("Z", "+00:00").replace(" ", "T")
+            gen_dt = datetime.fromisoformat(clean_str)
+            if gen_dt.tzinfo is None:
+                gen_dt = gen_dt.replace(tzinfo=timezone.utc)
+            now_dt = datetime.now(timezone.utc)
+            diff_hours = (now_dt - gen_dt).total_seconds() / 3600.0
+            return diff_hours <= max_hours
+        except Exception:
+            pass
+    return False
+
+def get_stale_warning_message(cached_data: dict) -> str:
+    gen_str = cached_data.get("meta", {}).get("generated_at", "2 saatten önce") if cached_data else "2 saatten önce"
+    return (
+        f"⚠️ <b>Analiz Verileri Güncel Değil:</b>\n"
+        f"Kayıtlı son analiz <b>{gen_str}</b> tarihinde oluşturulmuş (2 saatlik geçerlilik süresi doldu).\n\n"
+        f"En güncel transfer trendleri, sakatlıklar ve maç verileriyle yanıt alabilmek için lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n"
+        f"<i>💡 <b>/analiz</b> ve <b>/optimal</b> komutları her zaman motoru canlı tetikleyerek verileri sıfırdan hesaplar.</i>"
+    )
+
 async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_gws: int = 8, output_path: Path = None):
     app_logger.info(f"Starting headless analysis for Manager {manager_id}...")
 
@@ -599,6 +632,9 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
+            if not is_analysis_fresh(cached_data, 2.0):
+                send_telegram_report(get_stale_warning_message(cached_data))
+                return {}
             send_telegram_report(format_telegram_captain_report(cached_data))
             return cached_data
         else:
@@ -609,6 +645,9 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
+            if not is_analysis_fresh(cached_data, 2.0):
+                send_telegram_report(get_stale_warning_message(cached_data))
+                return {}
             send_telegram_report(format_telegram_health_report(cached_data))
             return cached_data
         else:
@@ -620,6 +659,9 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
+            if not is_analysis_fresh(cached_data, 2.0):
+                send_telegram_report(get_stale_warning_message(cached_data))
+                return {}
             if cached_data.get("matches_report"):
                 send_telegram_report(cached_data["matches_report"])
                 return cached_data
@@ -629,54 +671,17 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 send_telegram_report(rep)
                 return cached_data
         
-        # Fallback to direct live fetch
-        try:
-            bootstrap = await fpl_client.get_bootstrap_static()
-            current_event = next((e for e in bootstrap.events if e.is_current), None)
-            next_event = next((e for e in bootstrap.events if e.is_next), None)
-            
-            if current_event and not current_event.finished:
-                gw_val = current_event.id
-            elif next_event:
-                gw_val = next_event.id
-            elif current_event:
-                gw_val = current_event.id
-            else:
-                gw_val = 1
-                
-            raw_fixtures = await fpl_client.get_fixtures(event_id=gw_val)
-            if current_event and gw_val == current_event.id and raw_fixtures and all(f.finished for f in raw_fixtures) and next_event:
-                gw_val = next_event.id
-                raw_fixtures = await fpl_client.get_fixtures(event_id=gw_val)
-
-            fix_list = []
-            for fix in raw_fixtures:
-                fix_list.append({
-                    "id": fix.id, "event": fix.event,
-                    "team_h": fix.team_h,
-                    "team_h_name": TEAM_FULL_NAMES.get(fix.team_h, f"Takım {fix.team_h}"),
-                    "team_h_short": TEAM_NAMES.get(fix.team_h, ""),
-                    "team_a": fix.team_a,
-                    "team_a_name": TEAM_FULL_NAMES.get(fix.team_a, f"Takım {fix.team_a}"),
-                    "team_a_short": TEAM_NAMES.get(fix.team_a, ""),
-                    "team_h_difficulty": fix.team_h_difficulty, "team_a_difficulty": fix.team_a_difficulty,
-                    "team_h_score": fix.team_h_score, "team_a_score": fix.team_a_score,
-                    "finished": fix.finished, "started": fix.started,
-                    "kickoff_time": fix.kickoff_time.isoformat() if fix.kickoff_time else None
-                })
-            rep = format_telegram_matches_report(fix_list, gw_val)
-            send_telegram_report(rep)
-            return {"matches_report": rep, "fixtures": fix_list, "fixture_gw": gw_val}
-        except Exception as e:
-            app_logger.error(f"Fikstür çekilirken hata: {e}")
-            send_telegram_report(f"❌ Fikstür maç takvimi alınamadı: {e}")
-            return {}
+        send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.")
+        return {}
 
     # FIXTURE SWING RADAR (Difficulty swing analysis)
     if matches_any(cmd_lower, ["/salincak", "/kolaymaclar", "/kolayfikstur", "/swings", "salıncak", "salincak", "kolay fikstür", "kolay fikstur"]):
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
+            if not is_analysis_fresh(cached_data, 2.0):
+                send_telegram_report(get_stale_warning_message(cached_data))
+                return {}
             send_telegram_report(format_telegram_fixture_report(cached_data))
             return cached_data
         else:
@@ -687,6 +692,9 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
+            if not is_analysis_fresh(cached_data, 2.0):
+                send_telegram_report(get_stale_warning_message(cached_data))
+                return {}
             if cached_data.get("reports", {}).get("fiyat"):
                 send_telegram_report(cached_data["reports"]["fiyat"])
                 return cached_data
@@ -694,26 +702,8 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 send_telegram_report(format_telegram_price_report(cached_data))
                 return cached_data
         
-        # Fallback to direct live fetch
-        try:
-            from core.price_predictor import PricePredictor
-            bootstrap = await fpl_client.get_bootstrap_static()
-            squad_ids = set()
-            try:
-                from ingestion.local_sync_server import load_synced_team_from_disk
-                synced = load_synced_team_from_disk(chat_id=chat_id)
-                if synced and "team_data" in synced and "picks" in synced["team_data"]:
-                    squad_ids = {p.get("element") for p in synced["team_data"]["picks"] if p.get("element")}
-            except Exception:
-                pass
-            alerts = PricePredictor.get_price_alerts(squad_ids, bootstrap.elements, threshold=0.45)
-            rep = format_telegram_price_report({"price_alerts": alerts})
-            send_telegram_report(rep)
-            return {"price_alerts": alerts, "reports": {"fiyat": rep}}
-        except Exception as e:
-            app_logger.error(f"Fiyat verisi çekilirken hata: {e}")
-            send_telegram_report(f"❌ Fiyat verileri alınamadı: {e}")
-            return {}
+        send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.")
+        return {}
 
     # 5. SQUAD & TRANSFER MANIPULATION
     transfer_notification_text = ""
@@ -909,6 +899,8 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             "current_gw": bundle.current_gw,
             "is_preseason": bundle.is_preseason,
             "generated_at": bundle.generated_at,
+            "generated_at_epoch": int(time.time()),
+            "generated_at_iso": datetime.now(timezone.utc).isoformat(),
             "free_transfers": bundle.free_transfers_count,
             "bank": bundle.bank_amount,
             "chips_status": bundle.chips_status_str,

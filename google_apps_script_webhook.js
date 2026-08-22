@@ -59,10 +59,38 @@ function handleTelegramWebhook(e) {
       return HtmlService.createHtmlOutput("OK");
     }
 
-    // 2. ANLIK RAPORLAR (⚡ 0.2 sn - fpl_analysis.json veya kullanıcı analiz havuzundan çeker)
-    const data = fetchAnalysisJson(chatId);
-    if (data) {
-      // Önce Python tarafından fpl_analysis.json içine gömülen güncel rapor havuzuna bak
+    // 2. YARDIM / KOMUT REHBERİ (Her zaman çalışır)
+    if (cleanCmd === "yardim" || cleanCmd === "help" || cleanCmd === "yardım" || cleanCmd === "komutlar") {
+      sendTelegramMessage(chatId, getHelpText());
+      return HtmlService.createHtmlOutput("OK");
+    }
+
+    // 3. ANLIK RAPORLAR (⚡ 0.2 sn - 2 saatlik tazelik kontrolü ile)
+    const instantCommands = [
+      "maclar", "maçlar", "fikstur", "fikstür", "program", "maç programı", "mac programi", "haftanın maçları", "haftanin maclari",
+      "kaptan", "captain", "c kim", "kime verelim",
+      "sakatlar", "revir", "saglik", "sağlık", "injury",
+      "salincak", "salıncak", "swings", "kolayfikstur", "kolayfikstür", "kolay maçlar", "kolay fikstür",
+      "fiyat", "price", "zam", "düşüş", "fiyatlar",
+      "kadrom", "takim", "15", "oyuncular"
+    ];
+
+    const isInstantCmd = instantCommands.includes(cleanCmd) || instantCommands.includes(textLower);
+
+    if (isInstantCmd) {
+      const data = fetchAnalysisJson(chatId);
+      if (!data) {
+        sendTelegramMessage(chatId, "⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.");
+        return HtmlService.createHtmlOutput("OK");
+      }
+
+      // 2 saatlik tazelik kuralı kontrolü
+      if (!isAnalysisFresh(data, 2)) {
+        sendTelegramMessage(chatId, getStaleDataMessage(data));
+        return HtmlService.createHtmlOutput("OK");
+      }
+
+      // Rapor havuzuna bak
       if (data.reports && typeof data.reports === "object") {
         if (data.reports[cleanCmd]) {
           sendTelegramMessage(chatId, data.reports[cleanCmd]);
@@ -71,7 +99,6 @@ function handleTelegramWebhook(e) {
         
         // Komut takma adları (Aliases)
         const aliasMap = {
-          "help": "yardim", "komutlar": "yardim", "yardım": "yardim",
           "fikstur": "maclar", "fikstür": "maclar", "program": "maclar", "maçlar": "maclar", "maclar": "maclar", "maç programı": "maclar", "mac programi": "maclar", "haftanın maçları": "maclar", "haftanin maclari": "maclar", "/haftalikmaclar": "maclar",
           "c kim": "kaptan", "captain": "kaptan", "kime verelim": "kaptan",
           "revir": "sakatlar", "saglik": "sakatlar", "sağlık": "sakatlar", "injury": "sakatlar",
@@ -86,10 +113,6 @@ function handleTelegramWebhook(e) {
       }
 
       // Güvenlik yedeği (Fallback formatlayıcılar)
-      if (cleanCmd === "yardim" || cleanCmd === "help" || cleanCmd === "yardım") {
-        sendTelegramMessage(chatId, getHelpText());
-        return HtmlService.createHtmlOutput("OK");
-      }
       if (cleanCmd === "maclar" || cleanCmd === "maçlar" || cleanCmd === "fikstur" || cleanCmd === "fikstür" || cleanCmd === "program") {
         sendTelegramMessage(chatId, formatMatchesReport(data));
         return HtmlService.createHtmlOutput("OK");
@@ -204,6 +227,35 @@ function fetchAnalysisJson(chatId) {
     Logger.log("fetchAnalysisJson error: " + e);
   }
   return null;
+}
+
+function isAnalysisFresh(data, maxHours) {
+  if (!data || !data.meta) return false;
+  maxHours = maxHours || 2;
+  var genTime = null;
+  if (data.meta.generated_at_epoch) {
+    genTime = data.meta.generated_at_epoch * 1000;
+  } else if (data.meta.generated_at_iso) {
+    genTime = new Date(data.meta.generated_at_iso).getTime();
+  } else if (data.meta.generated_at) {
+    var s = String(data.meta.generated_at).replace(" ", "T");
+    genTime = new Date(s).getTime();
+  }
+  if (!genTime || isNaN(genTime)) return false;
+  var now = new Date().getTime();
+  var diffHours = (now - genTime) / (1000 * 60 * 60);
+  return diffHours <= maxHours;
+}
+
+function getStaleDataMessage(data) {
+  var timeText = "2 saatten önce";
+  if (data && data.meta && data.meta.generated_at) {
+    timeText = data.meta.generated_at;
+  }
+  return "⚠️ <b>Analiz Verileri Güncel Değil:</b>\n" +
+         "Kayıtlı son analiz <b>" + timeText + "</b> tarihinde üretilmiş (2 saatlik geçerlilik süresi doldu).\n\n" +
+         "En güncel transfer trendleri, sakatlıklar ve maç verileriyle yanıt alabilmek için lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n" +
+         "<i>💡 <b>/analiz</b> ve <b>/optimal</b> komutları her zaman motoru canlı tetikleyerek verileri sıfırdan hesaplar.</i>";
 }
 
 function getHelpText() {
