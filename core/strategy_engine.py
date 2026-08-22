@@ -575,7 +575,7 @@ class StrategyEngine:
             chips_status_str=chips_str,
             low_risk_scenario=scenario_res,
             high_risk_scenario=scenario_res,
-            price_alerts=price_alerts[:5],
+            price_alerts=price_alerts[:20],
             fixture_swings=fixture_swings[:4],
             captain_picks=captain_picks,
             chip_advice=chip_advice,

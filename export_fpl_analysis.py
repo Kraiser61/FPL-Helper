@@ -70,7 +70,7 @@ def format_kickoff_tr(dt_val) -> tuple[str, str, str]:
 
 def format_telegram_matches_report(fixtures: list, gw_num: int = 1) -> str:
     if not fixtures:
-        return f"⚠️ GW{gw_num} için fikstür verisi bulunamadı.\n\n🤖 <i>Kraiser61 AI Engine</i>"
+        return f"⚠️ GW{gw_num} için fikstür verisi bulunamadı."
 
     from collections import defaultdict
     grouped = defaultdict(list)
@@ -109,7 +109,6 @@ def format_telegram_matches_report(fixtures: list, gw_num: int = 1) -> str:
         lines.append("")
 
     lines.append("⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>")
-    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
     return "\n".join(lines)
 
 def p_pos(p: PlayerAnalysis) -> str:
@@ -544,13 +543,12 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 f"🛡️ <b>Defanslar:</b>\n• " + "\n• ".join(defs) + "\n\n"
                 f"⚙️ <b>Orta Sahalar:</b>\n• " + "\n• ".join(mids) + "\n\n"
                 f"⚽ <b>Forvetler:</b>\n• " + "\n• ".join(fwds) + "\n\n"
-                f"💡 <i>Transfer yapmak için: <b>/transfer Çıkan yerine Giren</b></i>\n"
-                f"🤖 <i>Kraiser61 AI Engine</i>"
+                f"💡 <i>Transfer yapmak için: <b>/transfer Çıkan yerine Giren</b></i>"
             )
             send_telegram_report(squad_msg)
             return {"squad_report": squad_msg}
         else:
-            send_telegram_report("⚠️ Kayıtlı bir kadro bulunamadı. Lütfen <b>/kadro [15 oyuncu]</b> yazarak kadronuzu kaydedin.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            send_telegram_report("⚠️ Kayıtlı bir kadro bulunamadı. Lütfen <b>/kadro [15 oyuncu]</b> yazarak kadronuzu kaydedin.")
             return {}
 
     # 4. ADOPT DREAM TEAM AS ACTIVE SQUAD
@@ -576,8 +574,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             msg = (
                 "✅ <b>Kadronuz Rüya Takım (Optimal 15) ile Başarıyla Güncellendi!</b>\n\n"
                 f"📋 <b>Yeni 15 Kişilik Kadronuz:</b>\n{', '.join(names)}\n\n"
-                "<i>Yeni kadronuzun strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>\n\n"
-                "🤖 <i>Kraiser61 AI Engine</i>"
+                "<i>Yeni kadronuzun strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>"
             )
             send_telegram_report(msg)
             return {}
@@ -590,7 +587,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             send_telegram_report(format_telegram_captain_report(cached_data))
             return cached_data
         else:
-            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.")
             return {}
 
     if matches_any(cmd_lower, ["/sakatlar", "/revir", "sakatlar", "revir", "sağlık", "saglik", "injury"]):
@@ -600,7 +597,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             send_telegram_report(format_telegram_health_report(cached_data))
             return cached_data
         else:
-            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.")
             return {}
 
     # MATCH SCHEDULE (Detailed weekly fixtures with date and time)
@@ -612,7 +609,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 send_telegram_report(cached_data["matches_report"])
                 return cached_data
             elif cached_data.get("fixtures"):
-                gw_val = cached_data.get("meta", {}).get("current_gw", 1)
+                gw_val = cached_data.get("fixture_gw") or cached_data.get("meta", {}).get("current_gw", 1)
                 rep = format_telegram_matches_report(cached_data["fixtures"], gw_val)
                 send_telegram_report(rep)
                 return cached_data
@@ -620,9 +617,23 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         # Fallback to direct live fetch
         try:
             bootstrap = await fpl_client.get_bootstrap_static()
-            active_event = next((e for e in bootstrap.events if e.is_current or e.is_next or not e.finished), None)
-            gw_val = active_event.id if active_event else 1
+            current_event = next((e for e in bootstrap.events if e.is_current), None)
+            next_event = next((e for e in bootstrap.events if e.is_next), None)
+            
+            if current_event and not current_event.finished:
+                gw_val = current_event.id
+            elif next_event:
+                gw_val = next_event.id
+            elif current_event:
+                gw_val = current_event.id
+            else:
+                gw_val = 1
+                
             raw_fixtures = await fpl_client.get_fixtures(event_id=gw_val)
+            if current_event and gw_val == current_event.id and raw_fixtures and all(f.finished for f in raw_fixtures) and next_event:
+                gw_val = next_event.id
+                raw_fixtures = await fpl_client.get_fixtures(event_id=gw_val)
+
             fix_list = []
             for fix in raw_fixtures:
                 fix_list.append({
@@ -640,10 +651,10 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 })
             rep = format_telegram_matches_report(fix_list, gw_val)
             send_telegram_report(rep)
-            return {"matches_report": rep, "fixtures": fix_list}
+            return {"matches_report": rep, "fixtures": fix_list, "fixture_gw": gw_val}
         except Exception as e:
             app_logger.error(f"Fikstür çekilirken hata: {e}")
-            send_telegram_report(f"❌ Fikstür maç takvimi alınamadı: {e}\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            send_telegram_report(f"❌ Fikstür maç takvimi alınamadı: {e}")
             return {}
 
     # FIXTURE SWING RADAR (Difficulty swing analysis)
@@ -654,17 +665,39 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             send_telegram_report(format_telegram_fixture_report(cached_data))
             return cached_data
         else:
-            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.")
             return {}
 
     if matches_any(cmd_lower, ["/fiyat", "fiyat", "fiyatlar", "price", "zam", "düşüş", "artış"]):
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
-            send_telegram_report(format_telegram_price_report(cached_data))
-            return cached_data
-        else:
-            send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+            if cached_data.get("reports", {}).get("fiyat"):
+                send_telegram_report(cached_data["reports"]["fiyat"])
+                return cached_data
+            elif cached_data.get("price_alerts"):
+                send_telegram_report(format_telegram_price_report(cached_data))
+                return cached_data
+        
+        # Fallback to direct live fetch
+        try:
+            from core.price_predictor import PricePredictor
+            bootstrap = await fpl_client.get_bootstrap_static()
+            squad_ids = set()
+            try:
+                from ingestion.local_sync_server import load_synced_team_from_disk
+                synced = load_synced_team_from_disk(chat_id=chat_id)
+                if synced and "team_data" in synced and "picks" in synced["team_data"]:
+                    squad_ids = {p.get("element") for p in synced["team_data"]["picks"] if p.get("element")}
+            except Exception:
+                pass
+            alerts = PricePredictor.get_price_alerts(squad_ids, bootstrap.elements, threshold=0.45)
+            rep = format_telegram_price_report({"price_alerts": alerts})
+            send_telegram_report(rep)
+            return {"price_alerts": alerts, "reports": {"fiyat": rep}}
+        except Exception as e:
+            app_logger.error(f"Fiyat verisi çekilirken hata: {e}")
+            send_telegram_report(f"❌ Fiyat verileri alınamadı: {e}")
             return {}
 
     # 5. SQUAD & TRANSFER MANIPULATION
@@ -771,8 +804,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                                     lines.append(f"• {f_out} ➔ {f_in} ({f_reason})")
                                 lines.append("")
 
-                            lines.append("<i>Yeni kadronuzun strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>\n")
-                            lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+                            lines.append("<i>Yeni kadronuzun strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>")
                             
                             transfer_notification_text = "\n".join(lines)
                             send_telegram_report(transfer_notification_text)
@@ -782,7 +814,6 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                             lines = ["❌ <b>Transferler Uygulanamadı:</b>\n"]
                             for f_out, f_in, f_reason in failed:
                                 lines.append(f"• {f_out} ➔ {f_in} ({f_reason})")
-                            lines.append("\n🤖 <i>Kraiser61 AI Engine</i>")
                             send_telegram_report("\n".join(lines))
                             return {}
             elif raw_team_data.startswith("{"):
@@ -801,15 +832,15 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                     if p_count == 15:
                         save_synced_team_to_disk({"manager_id": manager_id, "team_data": td}, chat_id=chat_id)
                         app_logger.success(f"Successfully saved 15 picks from Telegram message.")
-                        send_telegram_report(f"✅ <b>15 Kişilik Kadronuz Eksiksiz Kaydedildi!</b>\n\nHaftalık analizinizi almak için <b>/analiz</b> yazabilirsiniz.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+                        send_telegram_report(f"✅ <b>15 Kişilik Kadronuz Eksiksiz Kaydedildi!</b>\n\nHaftalık analizinizi almak için <b>/analiz</b> yazabilirsiniz.")
                         return {}
                     elif p_count >= 11:
                         save_synced_team_to_disk({"manager_id": manager_id, "team_data": td}, chat_id=chat_id)
                         missing = 15 - p_count
-                        send_telegram_report(f"⚠️ <b>{p_count} Oyuncu Kaydedildi ({missing} Oyuncu Eksik):</b>\n\nFPL kuralları gereği tam analiz için 15 oyuncu gereklidir. Eksik kalan oyuncuları <b>/transfer</b> ile veya 15 ismi <b>/kadro</b> ile tekrar girerek tamamlayabilirsiniz.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+                        send_telegram_report(f"⚠️ <b>{p_count} Oyuncu Kaydedildi ({missing} Oyuncu Eksik):</b>\n\nFPL kuralları gereği tam analiz için 15 oyuncu gereklidir. Eksik kalan oyuncuları <b>/transfer</b> ile veya 15 ismi <b>/kadro</b> ile tekrar girerek tamamlayabilirsiniz.")
                         return {}
                     else:
-                        send_telegram_report(f"❌ <b>Kadronuz Kaydedilemedi:</b> Yalnızca {p_count} oyuncu tespit edilebildi. Lütfen en az 11 (tercihen 15) oyuncu ismini virgülle ayırarak girin.\n\n🤖 <i>Kraiser61 AI Engine</i>")
+                        send_telegram_report(f"❌ <b>Kadronuz Kaydedilemedi:</b> Yalnızca {p_count} oyuncu tespit edilebildi. Lütfen en az 11 (tercihen 15) oyuncu ismini virgülle ayırarak girin.")
                         return {}
         except Exception as e:
             app_logger.error(f"Failed to parse RAW_TEAM_DATA from environment: {e}")
@@ -923,8 +954,26 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     # Fetch and attach match fixtures for the active gameweek
     gw_fixtures = []
     matches_report = ""
+    fix_gw = bundle.current_gw
     try:
-        raw_fixtures = await fpl_client.get_fixtures(event_id=bundle.current_gw)
+        bootstrap = await fpl_client.get_bootstrap_static()
+        current_event = next((e for e in bootstrap.events if e.is_current), None)
+        next_event = next((e for e in bootstrap.events if e.is_next), None)
+        
+        if current_event and not current_event.finished:
+            fix_gw = current_event.id
+        elif next_event:
+            fix_gw = next_event.id
+        elif current_event:
+            fix_gw = current_event.id
+        else:
+            fix_gw = bundle.current_gw
+            
+        raw_fixtures = await fpl_client.get_fixtures(event_id=fix_gw)
+        if current_event and fix_gw == current_event.id and raw_fixtures and all(f.finished for f in raw_fixtures) and next_event:
+            fix_gw = next_event.id
+            raw_fixtures = await fpl_client.get_fixtures(event_id=fix_gw)
+
         for fix in raw_fixtures:
             gw_fixtures.append({
                 "id": fix.id, "event": fix.event,
@@ -939,10 +988,11 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 "finished": fix.finished, "started": fix.started,
                 "kickoff_time": fix.kickoff_time.isoformat() if fix.kickoff_time else None
             })
-        matches_report = format_telegram_matches_report(gw_fixtures, bundle.current_gw)
+        matches_report = format_telegram_matches_report(gw_fixtures, fix_gw)
     except Exception as e:
         app_logger.warning(f"Fikstür maç listesi oluşturulamadı: {e}")
 
+    payload["fixture_gw"] = fix_gw
     payload["fixtures"] = gw_fixtures
     payload["matches_report"] = matches_report
 
@@ -1115,7 +1165,6 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
             lines.append(f"{status_emoji} <b>{w_name}{team_str}:</b> %{chance if chance is not None else '?'} ({news})")
         lines.append("")
 
-    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
     return "\n".join(lines)
 
 def format_telegram_captain_report(payload: dict) -> str:
@@ -1154,7 +1203,6 @@ def format_telegram_captain_report(payload: dict) -> str:
         lines.append(f"🔥 <b>Diferansiyel Adayı (Düşük Sahiplik):</b>")
         lines.append(f"   • <b>{d_name} ({d_team})</b> - %{d_own:.1f} Sahiplik ({d_xp:.1f} xP)\n")
         
-    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
     return "\n".join(lines)
 
 def format_telegram_health_report(payload: dict) -> str:
@@ -1174,7 +1222,6 @@ def format_telegram_health_report(payload: dict) -> str:
             status_emoji = "🔴" if chance == 0 else "🟡"
             lines.append(f"{status_emoji} <b>{w_name}{team_str}:</b> %{chance if chance is not None else '?'} ({news})")
         lines.append("\n<i>Diğer tüm oyuncularınız oynamaya hazırdır.</i>\n")
-    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
     return "\n".join(lines)
 
 def format_telegram_fixture_report(payload: dict) -> str:
@@ -1191,25 +1238,88 @@ def format_telegram_fixture_report(payload: dict) -> str:
         lines.append("")
     else:
         lines.append("📊 Önümüzdeki 5 hafta için dengeli bir fikstür dağılımı mevcut.\n")
-    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
     return "\n".join(lines)
 
 def format_telegram_price_report(payload: dict) -> str:
     alerts = payload.get("price_alerts", [])
     lines = []
-    lines.append("💰 <b>FİYAT DEĞİŞİM RADARI (BU GECE)</b>\n")
-    if isinstance(alerts, list) and alerts:
-        lines.append("📊 <b>Fiyat Değişim Riski/Fırsatı Olan Oyuncular:</b>")
-        for a in alerts[:6]:
+    lines.append("💰 <b>5 GÜNLÜK FİYAT DEĞİŞİM RADARI</b>")
+    lines.append("<i>Önümüzdeki 5 günlük transfer trendi ve fiyat değişim olasılıkları:</i>\n")
+    
+    if not isinstance(alerts, list) or not alerts:
+        lines.append("📊 Önümüzdeki 5 gün için piyasada kritik bir fiyat değişimi riski veya fırsatı bulunmuyor.\n")
+        return "\n".join(lines)
+
+    rises = [a for a in alerts if a.get("direction") == "rise"]
+    falls = [a for a in alerts if a.get("direction") == "fall"]
+
+    # 1. Fiyat Artışları
+    lines.append("📈 <b>FİYAT ARTIŞI BEKLENENLER (+£0.1m)</b>")
+    high_rises = [a for a in rises if a.get("likelihood") == "high" or a.get("probability_1d", 0) >= 0.80 or a.get("probability", 0) >= 0.85]
+    med_rises = [a for a in rises if a not in high_rises and a.get("probability", 0) >= 0.45]
+
+    if high_rises:
+        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>")
+        for a in high_rises[:5]:
             p_name = a.get("web_name") or a.get("name", "Oyuncu")
-            change = a.get("type", "artış/düşüş")
             t_id = a.get("team") or a.get("team_id")
             team_str = f" ({TEAM_NAMES.get(t_id)})" if t_id in TEAM_NAMES else ""
-            lines.append(f"  • <b>{p_name}{team_str}</b>: {change}")
-        lines.append("")
+            price_str = f"£{a.get('price', 0):.1f}m" if a.get('price') else ""
+            prob = int(a.get("probability", 0) * 100)
+            squad_flag = " 👤 <i>(Kadronuzda)</i>" if a.get("in_squad") else ""
+            lines.append(f"  • <b>{p_name}{team_str}</b> - {price_str} ➔ <b>%{prob}</b>{squad_flag}")
     else:
-        lines.append("📈 Bu gece kadronuzu etkileyen kritik bir fiyat değişimi riski bulunmuyor.\n")
-    lines.append("🤖 <i>Kraiser61 AI Engine</i>")
+        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b> <i>Acil artış adayı yok</i>")
+
+    if med_rises:
+        lines.append("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>")
+        for a in med_rises[:5]:
+            p_name = a.get("web_name") or a.get("name", "Oyuncu")
+            t_id = a.get("team") or a.get("team_id")
+            team_str = f" ({TEAM_NAMES.get(t_id)})" if t_id in TEAM_NAMES else ""
+            price_str = f"£{a.get('price', 0):.1f}m" if a.get('price') else ""
+            prob = int(a.get("probability", 0) * 100)
+            squad_flag = " 👤 <i>(Kadronuzda)</i>" if a.get("in_squad") else ""
+            lines.append(f"  • <b>{p_name}{team_str}</b> - {price_str} ➔ <b>%{prob}</b>{squad_flag}")
+    else:
+        lines.append("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b> <i>Trend takibinde olan oyuncu yok</i>")
+        
+    lines.append("")
+
+    # 2. Fiyat Düşüşleri
+    lines.append("📉 <b>FİYAT DÜŞÜŞÜ BEKLENENLER (-£0.1m)</b>")
+    high_falls = [a for a in falls if a.get("likelihood") == "high" or a.get("probability_1d", 0) >= 0.80 or a.get("probability", 0) >= 0.85]
+    med_falls = [a for a in falls if a not in high_falls and a.get("probability", 0) >= 0.45]
+
+    if high_falls:
+        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>")
+        for a in high_falls[:5]:
+            p_name = a.get("web_name") or a.get("name", "Oyuncu")
+            t_id = a.get("team") or a.get("team_id")
+            team_str = f" ({TEAM_NAMES.get(t_id)})" if t_id in TEAM_NAMES else ""
+            price_str = f"£{a.get('price', 0):.1f}m" if a.get('price') else ""
+            prob = int(a.get("probability", 0) * 100)
+            squad_flag = " 👤 <i>(Kadronuzda!)</i>" if a.get("in_squad") else ""
+            lines.append(f"  • <b>{p_name}{team_str}</b> - {price_str} ➔ <b>%{prob}</b>{squad_flag}")
+    else:
+        lines.append("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b> <i>Acil düşüş adayı yok</i>")
+
+    if med_falls:
+        lines.append("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>")
+        for a in med_falls[:5]:
+            p_name = a.get("web_name") or a.get("name", "Oyuncu")
+            t_id = a.get("team") or a.get("team_id")
+            team_str = f" ({TEAM_NAMES.get(t_id)})" if t_id in TEAM_NAMES else ""
+            price_str = f"£{a.get('price', 0):.1f}m" if a.get('price') else ""
+            prob = int(a.get("probability", 0) * 100)
+            squad_flag = " 👤 <i>(Kadronuzda!)</i>" if a.get("in_squad") else ""
+            lines.append(f"  • <b>{p_name}{team_str}</b> - {price_str} ➔ <b>%{prob}</b>{squad_flag}")
+    else:
+        lines.append("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b> <i>Düşüş baskısında olan oyuncu yok</i>")
+
+    lines.append("\n💡 <b>Strateji Tavsiyesi:</b>")
+    lines.append("<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>")
+    
     return "\n".join(lines)
 
 def format_telegram_help_report() -> str:
@@ -1221,11 +1331,10 @@ def format_telegram_help_report() -> str:
         "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.",
         "🔹 <b>/sakatlar</b> (veya <b>/revir</b>) ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık durumu.",
         "🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.",
-        "🔹 <b>/fiyat</b> ➔ O gece fiyatı artması veya düşmesi beklenen piyasa alarmları.",
+        "🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.",
         "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadrodan tek bir oyuncuyu değiştirir (Örn: <code>/transfer Welbeck yerine Isak</code>).",
         "🔹 <b>/kadro [15 Oyuncu]</b> ➔ Tüm 15 kişilik kadronuzu sıfırdan kaydeder.",
-        "🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir.\n",
-        "🤖 <i>Kraiser61 AI Engine</i>"
+        "🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir."
     ]
     return "\n".join(lines)
 
@@ -1274,7 +1383,6 @@ def solve_optimal_squad(horizon_gws: int = 5) -> str:
         lines.append(f"💰 <b>Toplam Harcanan:</b> £{total_cost:.1f}m (Kalan Bütçe: £{100.0 - total_cost:.1f}m)")
         lines.append(f"📈 <b>11 Kişilik Beklenen Puan (GW{first_w}):</b> <b>{total_xp:.1f} xP</b>")
         lines.append(f"📊 <b>{horizon_gws} Haftalık Toplam xP:</b> <b>{r.total_xp:.1f} xP</b>\n")
-        lines.append("🤖 <i>Kraiser61 AI Engine</i>")
         return "\n".join(lines)
     except Exception as e:
         app_logger.error(f"Optimal squad solve error: {e}")

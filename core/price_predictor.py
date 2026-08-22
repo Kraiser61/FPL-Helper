@@ -149,53 +149,111 @@ class PricePredictor:
             return False, reason
 
     @classmethod
+    def predict_5day_rise_probability(cls, player: PlayerDTO) -> float:
+        """
+        Calculates 5-day cumulative horizon rise probability based on net inbound transfers and momentum.
+        """
+        net_transfers = float((player.transfers_in_event or 0) - (player.transfers_out_event or 0))
+        if net_transfers <= 0:
+            return 0.0
+        ownership_scaling = max(0.4, min(2.5, (player.selected_by_percent or 5.0) / 10.0))
+        r_threshold = cls.BASE_NET_TRANSFER_THRESHOLD * ownership_scaling
+        
+        projected_5d_velocity = net_transfers * 1.85
+        x = (projected_5d_velocity / r_threshold) - 1.0
+        prob = 1.0 / (1.0 + math.exp(-4.0 * x))
+        return round(min(0.99, max(0.0, prob)), 3)
+
+    @classmethod
+    def predict_5day_fall_probability(cls, player: PlayerDTO) -> float:
+        """
+        Calculates 5-day cumulative horizon fall probability based on net outbound transfers.
+        """
+        net_transfers = float((player.transfers_out_event or 0) - (player.transfers_in_event or 0))
+        if net_transfers <= 0:
+            return 0.0
+        ownership_scaling = max(0.4, min(2.5, (player.selected_by_percent or 5.0) / 10.0))
+        r_threshold = (cls.BASE_NET_TRANSFER_THRESHOLD * 0.80) * ownership_scaling
+        
+        projected_5d_velocity = net_transfers * 1.85
+        x = (projected_5d_velocity / r_threshold) - 1.0
+        prob = 1.0 / (1.0 + math.exp(-4.0 * x))
+        return round(min(0.99, max(0.0, prob)), 3)
+
+    @classmethod
     def get_price_alerts(
         cls, 
         squad_ids: Set[int], 
         players: List[PlayerDTO], 
-        threshold: float = 0.65,
+        threshold: float = 0.45,
         hours_to_deadline: Optional[float] = None
     ) -> List[Dict[str, Any]]:
         """
-        Generates actionable price movement alerts for current squad and targets.
+        Generates actionable price movement alerts for current squad and targets across a 5-day horizon.
+        Categorizes players into high likelihood (1-2 days / tonight) and medium likelihood (3-5 days).
         """
         alerts = []
         for p in players:
-            rise_p = cls.predict_rise_probability(p, hours_to_deadline=hours_to_deadline)
-            fall_p = cls.predict_fall_probability(p, hours_to_deadline=hours_to_deadline)
+            rise_p_1d = cls.predict_rise_probability(p, hours_to_deadline=hours_to_deadline)
+            rise_p_5d = cls.predict_5day_rise_probability(p)
+            
+            fall_p_1d = cls.predict_fall_probability(p, hours_to_deadline=hours_to_deadline)
+            fall_p_5d = cls.predict_5day_fall_probability(p)
+            
             in_squad = p.id in squad_ids
 
-            if rise_p >= threshold:
+            effective_rise_p = max(rise_p_1d, rise_p_5d)
+            if effective_rise_p >= threshold:
+                is_high = (rise_p_1d >= 0.80 or rise_p_5d >= 0.90)
+                likelihood = "high" if is_high else "medium"
+                horizon_text = "1-2 Gün (Bu Gece)" if is_high else "3-5 Gün İçinde"
                 should_early, timing_text = cls.should_make_early_transfer(p, hours_to_deadline=hours_to_deadline)
-                urgency = "high" if rise_p > 0.85 else "medium"
                 alerts.append({
                     "player_id": p.id,
                     "web_name": p.web_name,
+                    "team": p.team,
+                    "team_id": p.team,
+                    "element_type": p.element_type,
                     "direction": "rise",
-                    "probability": rise_p,
+                    "probability": effective_rise_p,
+                    "probability_1d": rise_p_1d,
+                    "probability_5d": rise_p_5d,
+                    "likelihood": likelihood,
+                    "horizon_text": horizon_text,
                     "price": p.now_cost / 10.0,
                     "in_squad": in_squad,
-                    "urgency": urgency,
+                    "urgency": "high" if is_high else "medium",
                     "should_early_transfer": should_early,
                     "timing_advice": timing_text,
-                    "action_text": f"📈 {p.web_name} (%{int(rise_p*100)} Artış) — {timing_text}"
+                    "action_text": f"📈 {p.web_name} (%{int(effective_rise_p*100)} Artış - {horizon_text})"
                 })
-            elif fall_p >= threshold and in_squad:
-                urgency = "high" if fall_p > 0.85 else "medium"
+
+            effective_fall_p = max(fall_p_1d, fall_p_5d)
+            if effective_fall_p >= threshold:
+                is_high = (fall_p_1d >= 0.80 or fall_p_5d >= 0.90)
+                likelihood = "high" if is_high else "medium"
+                horizon_text = "1-2 Gün (Bu Gece)" if is_high else "3-5 Gün İçinde"
                 alerts.append({
                     "player_id": p.id,
                     "web_name": p.web_name,
+                    "team": p.team,
+                    "team_id": p.team,
+                    "element_type": p.element_type,
                     "direction": "fall",
-                    "probability": fall_p,
+                    "probability": effective_fall_p,
+                    "probability_1d": fall_p_1d,
+                    "probability_5d": fall_p_5d,
+                    "likelihood": likelihood,
+                    "horizon_text": horizon_text,
                     "price": p.now_cost / 10.0,
                     "in_squad": in_squad,
-                    "urgency": urgency,
+                    "urgency": "high" if is_high else "medium",
                     "should_early_transfer": False,
                     "timing_advice": "📉 Satış Uyarısı: Değer kaybını önlemek için fiyat düşmeden kadrodan çıkarın.",
-                    "action_text": f"📉 {p.web_name} (%{int(fall_p*100)} Düşüş) — Satış uyarısı! £0.1m kaybetmeden çıkarın."
+                    "action_text": f"📉 {p.web_name} (%{int(effective_fall_p*100)} Düşüş - {horizon_text})"
                 })
 
-        alerts.sort(key=lambda x: x["probability"], reverse=True)
+        alerts.sort(key=lambda x: (1 if x["in_squad"] else 0, x["probability"]), reverse=True)
         return alerts
 
     @classmethod

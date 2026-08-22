@@ -225,10 +225,9 @@ function getHelpText() {
     "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.",
     "🔹 <b>/sakatlar</b> ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık raporu.",
     "🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan takımlar.",
-    "🔹 <b>/fiyat</b> ➔ Gece fiyatı artması/düşmesi beklenen oyuncu alarmları.",
+    "🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.",
     "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadroda oyuncu değiştirir.",
-    "🔹 <b>/yardim</b> ➔ Bu komut listesini getirir.\n",
-    "🤖 <i>Kraiser61 AI Engine</i>"
+    "🔹 <b>/yardim</b> ➔ Bu komut listesini getirir."
   ].join("\n");
 }
 
@@ -257,7 +256,6 @@ function formatCaptainReport(payload) {
     const vXp = (vc.xp_next_gw || 0).toFixed(1);
     lines.push(`🥈 <b>2. Kaptan (Yedek):</b> ${vName} (${vTeam}) - <b>${vXp} xP</b>\n`);
   }
-  lines.push("🤖 <i>Kraiser61 AI Engine</i>");
   return lines.join("\n");
 }
 
@@ -278,7 +276,6 @@ function formatHealthReport(payload) {
   } else {
     lines.push("✅ Kadronuzda sakat veya cezalı oyuncu bulunmuyor. Tüm ilk 11 ve yedekler hazır!\n");
   }
-  lines.push("🤖 <i>Kraiser61 AI Engine</i>");
   return lines.join("\n");
 }
 
@@ -299,29 +296,99 @@ function formatFixtureReport(payload) {
   } else {
     lines.push("📊 Önümüzdeki 5 hafta için dengeli bir fikstür dağılımı mevcut.\n");
   }
-  lines.push("🤖 <i>Kraiser61 AI Engine</i>");
   return lines.join("\n");
 }
 
 function formatPriceReport(payload) {
   const alerts = payload.price_alerts || [];
   let lines = [];
-  lines.push("💰 <b>FİYAT DEĞİŞİM RADARI (BU GECE)</b>\n");
-  if (alerts.length > 0) {
-    lines.push("📊 <b>Fiyat Değişim Riski/Fırsatı Olan Oyuncular:</b>");
-    for (let i = 0; i < Math.min(alerts.length, 6); i++) {
-      const a = alerts[i];
+  lines.push("💰 <b>5 GÜNLÜK FİYAT DEĞİŞİM RADARI</b>");
+  lines.push("<i>Önümüzdeki 5 günlük transfer trendi ve fiyat değişim olasılıkları:</i>\n");
+  
+  if (!alerts || alerts.length === 0) {
+    lines.push("📊 Önümüzdeki 5 gün için piyasada kritik bir fiyat değişimi riski veya fırsatı bulunmuyor.\n");
+    return lines.join("\n");
+  }
+
+  const rises = alerts.filter(a => a.direction === "rise");
+  const falls = alerts.filter(a => a.direction === "fall");
+
+  lines.push("📈 <b>FİYAT ARTIŞI BEKLENENLER (+£0.1m)</b>");
+  const highRises = rises.filter(a => a.likelihood === "high" || (a.probability_1d || 0) >= 0.80 || (a.probability || 0) >= 0.85);
+  const medRises = rises.filter(a => !highRises.includes(a) && (a.probability || 0) >= 0.45);
+
+  if (highRises.length > 0) {
+    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>");
+    for (let i = 0; i < Math.min(highRises.length, 5); i++) {
+      const a = highRises[i];
       const pName = a.web_name || a.name || "Oyuncu";
-      const change = a.type || "artış/düşüş";
       const tId = a.team || a.team_id;
       const teamStr = TEAM_NAMES[tId] ? ` (${TEAM_NAMES[tId]})` : "";
-      lines.push(`  • <b>${pName}${teamStr}</b>: ${change}`);
+      const priceStr = a.price ? `£${Number(a.price).toFixed(1)}m` : "";
+      const prob = Math.round((a.probability || 0) * 100);
+      const squadFlag = a.in_squad ? " 👤 <i>(Kadronuzda)</i>" : "";
+      lines.push(`  • <b>${pName}${teamStr}</b> - ${priceStr} ➔ <b>%${prob}</b>${squadFlag}`);
     }
-    lines.push("");
   } else {
-    lines.push("📈 Bu gece kadronuzu etkileyen kritik bir fiyat değişimi riski bulunmuyor.\n");
+    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b> <i>Acil artış adayı yok</i>");
   }
-  lines.push("🤖 <i>Kraiser61 AI Engine</i>");
+
+  if (medRises.length > 0) {
+    lines.push("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>");
+    for (let i = 0; i < Math.min(medRises.length, 5); i++) {
+      const a = medRises[i];
+      const pName = a.web_name || a.name || "Oyuncu";
+      const tId = a.team || a.team_id;
+      const teamStr = TEAM_NAMES[tId] ? ` (${TEAM_NAMES[tId]})` : "";
+      const priceStr = a.price ? `£${Number(a.price).toFixed(1)}m` : "";
+      const prob = Math.round((a.probability || 0) * 100);
+      const squadFlag = a.in_squad ? " 👤 <i>(Kadronuzda)</i>" : "";
+      lines.push(`  • <b>${pName}${teamStr}</b> - ${priceStr} ➔ <b>%${prob}</b>${squadFlag}`);
+    }
+  } else {
+    lines.push("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b> <i>Trend takibinde olan oyuncu yok</i>");
+  }
+  lines.push("");
+
+  lines.push("📉 <b>FİYAT DÜŞÜŞÜ BEKLENENLER (-£0.1m)</b>");
+  const highFalls = falls.filter(a => a.likelihood === "high" || (a.probability_1d || 0) >= 0.80 || (a.probability || 0) >= 0.85);
+  const medFalls = falls.filter(a => !highFalls.includes(a) && (a.probability || 0) >= 0.45);
+
+  if (highFalls.length > 0) {
+    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b>");
+    for (let i = 0; i < Math.min(highFalls.length, 5); i++) {
+      const a = highFalls[i];
+      const pName = a.web_name || a.name || "Oyuncu";
+      const tId = a.team || a.team_id;
+      const teamStr = TEAM_NAMES[tId] ? ` (${TEAM_NAMES[tId]})` : "";
+      const priceStr = a.price ? `£${Number(a.price).toFixed(1)}m` : "";
+      const prob = Math.round((a.probability || 0) * 100);
+      const squadFlag = a.in_squad ? " 👤 <i>(Kadronuzda!)</i>" : "";
+      lines.push(`  • <b>${pName}${teamStr}</b> - ${priceStr} ➔ <b>%${prob}</b>${squadFlag}`);
+    }
+  } else {
+    lines.push("🔴 <b>Yüksek İhtimal (1-2 Gün / Bu Gece):</b> <i>Acil düşüş adayı yok</i>");
+  }
+
+  if (medFalls.length > 0) {
+    lines.push("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b>");
+    for (let i = 0; i < Math.min(medFalls.length, 5); i++) {
+      const a = medFalls[i];
+      const pName = a.web_name || a.name || "Oyuncu";
+      const tId = a.team || a.team_id;
+      const teamStr = TEAM_NAMES[tId] ? ` (${TEAM_NAMES[tId]})` : "";
+      const priceStr = a.price ? `£${Number(a.price).toFixed(1)}m` : "";
+      const prob = Math.round((a.probability || 0) * 100);
+      const squadFlag = a.in_squad ? " 👤 <i>(Kadronuzda!)</i>" : "";
+      lines.push(`  • <b>${pName}${teamStr}</b> - ${priceStr} ➔ <b>%${prob}</b>${squadFlag}`);
+    }
+  } else {
+    lines.push("🟡 <b>Orta İhtimal (3-5 Gün İçinde):</b> <i>Düşüş baskısında olan oyuncu yok</i>");
+  }
+
+  lines.push("\n💡 <b>Strateji Tavsiyesi:</b>");
+  lines.push("<i>Kadro değerini korumak için yüksek ihtimalli düşüş adaylarını erken elden çıkarmayı, transfer hedeflerinizi ise sakatlık riski yoksa fiyat artmadan almayı değerlendirin.</i>");
+  
   return lines.join("\n");
 }
 
@@ -332,10 +399,10 @@ function formatMatchesReport(payload) {
   
   const fixtures = payload.fixtures || [];
   const meta = payload.meta || {};
-  const gw = meta.current_gw || 1;
+  const gw = payload.fixture_gw || meta.fixture_gw || meta.current_gw || 1;
   
   if (fixtures.length === 0) {
-    return `⚠️ GW${gw} için fikstür verisi bulunamadı.\n\n🤖 <i>Kraiser61 AI Engine</i>`;
+    return `⚠️ GW${gw} için fikstür verisi bulunamadı.`;
   }
   
   const MONTHS_TR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
@@ -387,6 +454,5 @@ function formatMatchesReport(payload) {
   }
   
   lines.push("⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>");
-  lines.push("🤖 <i>Kraiser61 AI Engine</i>");
   return lines.join("\n");
 }
