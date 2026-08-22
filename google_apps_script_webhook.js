@@ -65,9 +65,17 @@ function handleTelegramWebhook(e) {
       return HtmlService.createHtmlOutput("OK");
     }
 
-    // 3. ANLIK RAPORLAR (⚡ 0.2 sn - 2 saatlik tazelik kontrolü ile)
+    // 3. CANLI FİKSTÜR VE MAÇ PROGRAMI (⚡ Her sorguda doğrudan FPL API'den anlık canlı skor ve maç takvimi çeker)
+    const matchCommands = [
+      "maclar", "maçlar", "fikstur", "fikstür", "program", "maç programı", "mac programi", "haftanın maçları", "haftanin maclari", "/haftalikmaclar"
+    ];
+    if (matchCommands.includes(cleanCmd) || matchCommands.includes(textLower)) {
+      sendTelegramMessage(chatId, fetchLiveFixturesReport());
+      return HtmlService.createHtmlOutput("OK");
+    }
+
+    // 4. STRATEJİ VE ÖNBELLEK RAPORLARI (⚡ 2 saatlik tazelik kontrolü ile)
     const instantCommands = [
-      "maclar", "maçlar", "fikstur", "fikstür", "program", "maç programı", "mac programi", "haftanın maçları", "haftanin maclari",
       "kaptan", "captain", "c kim", "kime verelim",
       "sakatlar", "revir", "saglik", "sağlık", "injury",
       "salincak", "salıncak", "swings", "kolayfikstur", "kolayfikstür", "kolay maçlar", "kolay fikstür",
@@ -99,7 +107,6 @@ function handleTelegramWebhook(e) {
         
         // Komut takma adları (Aliases)
         const aliasMap = {
-          "fikstur": "maclar", "fikstür": "maclar", "program": "maclar", "maçlar": "maclar", "maclar": "maclar", "maç programı": "maclar", "mac programi": "maclar", "haftanın maçları": "maclar", "haftanin maclari": "maclar", "/haftalikmaclar": "maclar",
           "c kim": "kaptan", "captain": "kaptan", "kime verelim": "kaptan",
           "revir": "sakatlar", "saglik": "sakatlar", "sağlık": "sakatlar", "injury": "sakatlar",
           "kolay maçlar": "salincak", "kolay fikstür": "salincak", "swings": "salincak", "kolayfikstur": "salincak", "kolayfikstür": "salincak",
@@ -113,10 +120,6 @@ function handleTelegramWebhook(e) {
       }
 
       // Güvenlik yedeği (Fallback formatlayıcılar)
-      if (cleanCmd === "maclar" || cleanCmd === "maçlar" || cleanCmd === "fikstur" || cleanCmd === "fikstür" || cleanCmd === "program") {
-        sendTelegramMessage(chatId, formatMatchesReport(data));
-        return HtmlService.createHtmlOutput("OK");
-      }
       if (cleanCmd === "kaptan") {
         sendTelegramMessage(chatId, formatCaptainReport(data));
         return HtmlService.createHtmlOutput("OK");
@@ -507,5 +510,111 @@ function formatMatchesReport(payload) {
   }
   
   lines.push("⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile verilmiştir.</i>");
+  return lines.join("\n");
+}
+
+function fetchLiveFixturesReport() {
+  try {
+    const bootstrapRes = UrlFetchApp.fetch("https://fantasy.premierleague.com/api/bootstrap-static/", { muteHttpExceptions: true });
+    if (bootstrapRes.getResponseCode() !== 200) {
+      return "⚠️ FPL API'ye erişilemedi. Lütfen birazdan tekrar deneyin.";
+    }
+    const bootstrap = JSON.parse(bootstrapRes.getContentText());
+    const events = bootstrap.events || [];
+    const teams = bootstrap.teams || [];
+    const teamFullNames = {};
+    for (const t of teams) {
+      teamFullNames[t.id] = t.name;
+    }
+
+    let currentEvent = events.find(e => e.is_current);
+    let nextEvent = events.find(e => e.is_next);
+    let gw = 1;
+
+    if (currentEvent && !currentEvent.finished) {
+      gw = currentEvent.id;
+    } else if (nextEvent) {
+      gw = nextEvent.id;
+    } else if (currentEvent) {
+      gw = currentEvent.id;
+    }
+
+    const fixRes = UrlFetchApp.fetch(`https://fantasy.premierleague.com/api/fixtures/?event=${gw}`, { muteHttpExceptions: true });
+    if (fixRes.getResponseCode() !== 200) {
+      return `⚠️ GW${gw} fikstür verisi FPL API'den çekilemedi.`;
+    }
+    let fixtures = JSON.parse(fixRes.getContentText());
+
+    // Eğer o haftanın tüm maçları bittiyse ve sonraki hafta varsa bir sonraki haftanın fikstürünü getir
+    if (currentEvent && gw === currentEvent.id && Array.isArray(fixtures) && fixtures.length > 0 && fixtures.every(isFixtureFinished) && nextEvent) {
+      gw = nextEvent.id;
+      const nextFixRes = UrlFetchApp.fetch(`https://fantasy.premierleague.com/api/fixtures/?event=${gw}`, { muteHttpExceptions: true });
+      if (nextFixRes.getResponseCode() === 200) {
+        fixtures = JSON.parse(nextFixRes.getContentText());
+      }
+    }
+
+    return formatMatchesReportFromRaw(fixtures, gw, teamFullNames);
+  } catch (e) {
+    Logger.log("fetchLiveFixturesReport error: " + e);
+    return `❌ Canlı fikstür çekilirken hata oluştu: ${e}`;
+  }
+}
+
+function formatMatchesReportFromRaw(fixtures, gw, teamFullNames) {
+  if (!Array.isArray(fixtures) || fixtures.length === 0) {
+    return `⚠️ GW${gw} için fikstür verisi bulunamadı.`;
+  }
+
+  const MONTHS_TR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+  const DAYS_TR = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+  
+  const grouped = {};
+  for (const f of fixtures) {
+    if (!f.kickoff_time) continue;
+    const d = new Date(f.kickoff_time);
+    const trDate = new Date(d.getTime() + (3 * 60 * 60 * 1000));
+    
+    const dayName = DAYS_TR[trDate.getUTCDay()];
+    const dayNum = trDate.getUTCDate();
+    const monthName = MONTHS_TR[trDate.getUTCMonth()];
+    const dayKey = `${dayNum} ${monthName} ${dayName}`;
+    
+    const hours = String(trDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(trDate.getUTCMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+    
+    if (!grouped[dayKey]) {
+      grouped[dayKey] = [];
+    }
+    grouped[dayKey].push({
+      time: timeStr,
+      fixture: f
+    });
+  }
+  
+  let lines = [];
+  lines.push(`🦁 <b>PREMIER LEAGUE GW${gw} CANLI MAÇ PROGRAMI (TSİ)</b>\n`);
+  
+  for (const [dayKey, list] of Object.entries(grouped)) {
+    lines.push(`🗓️ <b>${dayKey}</b>`);
+    for (const item of list) {
+      const f = item.fixture;
+      const hTeam = (teamFullNames && teamFullNames[f.team_h]) || (TEAM_FULL_NAMES && TEAM_FULL_NAMES[f.team_h]) || `Takım ${f.team_h}`;
+      const aTeam = (teamFullNames && teamFullNames[f.team_a]) || (TEAM_FULL_NAMES && TEAM_FULL_NAMES[f.team_a]) || `Takım ${f.team_a}`;
+      
+      const finished = isFixtureFinished(f);
+      if (finished && f.team_h_score !== null && f.team_h_score !== undefined && f.team_a_score !== null && f.team_a_score !== undefined) {
+        lines.push(`• <b>${item.time}</b> ➔ ${hTeam} <b>${f.team_h_score} - ${f.team_a_score}</b> ${aTeam} (Bitti)`);
+      } else if (f.started && f.team_h_score !== null && f.team_h_score !== undefined && f.team_a_score !== null && f.team_a_score !== undefined) {
+        lines.push(`• <b>${item.time}</b> ➔ ${hTeam} <b>${f.team_h_score} - ${f.team_a_score}</b> ${aTeam} (🔴 Canlı)`);
+      } else {
+        lines.push(`• <b>${item.time}</b> ➔ <b>${hTeam}</b> vs <b>${aTeam}</b>`);
+      }
+    }
+    lines.push("");
+  }
+  
+  lines.push("⏰ <i>Tüm başlama saatleri Türkiye saati (TSİ / GMT+3) ile canlı güncellenmektedir.</i>");
   return lines.join("\n");
 }

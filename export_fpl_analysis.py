@@ -654,25 +654,71 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.")
             return {}
 
-    # MATCH SCHEDULE (Detailed weekly fixtures with date and time)
+    # MATCH SCHEDULE (Live match fixtures & scores directly from FPL API)
     if matches_any(cmd_lower, ["/maclar", "/maçlar", "maclar", "maçlar", "/fikstur", "/fikstür", "fikstur", "fikstür", "/program", "program", "maç programı", "mac programi", "haftanın maçları", "haftanin maclari", "bu haftanın maçları"]):
-        if cached_path.exists():
-            with open(cached_path, "r", encoding="utf-8") as f:
-                cached_data = json.load(f)
-            if not is_analysis_fresh(cached_data, 2.0):
-                send_telegram_report(get_stale_warning_message(cached_data))
-                return {}
-            if cached_data.get("matches_report"):
-                send_telegram_report(cached_data["matches_report"])
-                return cached_data
-            elif cached_data.get("fixtures"):
-                gw_val = cached_data.get("fixture_gw") or cached_data.get("meta", {}).get("current_gw", 1)
-                rep = format_telegram_matches_report(cached_data["fixtures"], gw_val)
-                send_telegram_report(rep)
-                return cached_data
-        
-        send_telegram_report("⚠️ Henüz kayıtlı analiz verisi bulunamadı. Lütfen önce <b>/analiz</b> komutunu çalıştırın.")
-        return {}
+        try:
+            bootstrap = await fpl_client.get_bootstrap_static()
+            current_event = next((e for e in bootstrap.events if e.is_current), None)
+            next_event = next((e for e in bootstrap.events if e.is_next), None)
+            
+            if current_event and not current_event.finished:
+                gw_val = current_event.id
+            elif next_event:
+                gw_val = next_event.id
+            elif current_event:
+                gw_val = current_event.id
+            else:
+                gw_val = 1
+                
+            raw_fixtures = await fpl_client.get_fixtures(event_id=gw_val)
+            fix_list = []
+            for fix in raw_fixtures:
+                fix_list.append({
+                    "id": fix.id, "event": fix.event,
+                    "team_h": fix.team_h,
+                    "team_h_name": TEAM_FULL_NAMES.get(fix.team_h, f"Takım {fix.team_h}"),
+                    "team_h_short": TEAM_NAMES.get(fix.team_h, ""),
+                    "team_a": fix.team_a,
+                    "team_a_name": TEAM_FULL_NAMES.get(fix.team_a, f"Takım {fix.team_a}"),
+                    "team_a_short": TEAM_NAMES.get(fix.team_a, ""),
+                    "team_h_difficulty": fix.team_h_difficulty, "team_a_difficulty": fix.team_a_difficulty,
+                    "team_h_score": fix.team_h_score, "team_a_score": fix.team_a_score,
+                    "finished": fix.finished,
+                    "finished_provisional": getattr(fix, "finished_provisional", False),
+                    "minutes": getattr(fix, "minutes", 0),
+                    "started": fix.started,
+                    "kickoff_time": fix.kickoff_time.isoformat() if fix.kickoff_time else None
+                })
+
+            if current_event and gw_val == current_event.id and fix_list and all(is_fixture_finished(f) for f in fix_list) and next_event:
+                gw_val = next_event.id
+                raw_fixtures = await fpl_client.get_fixtures(event_id=gw_val)
+                fix_list = []
+                for fix in raw_fixtures:
+                    fix_list.append({
+                        "id": fix.id, "event": fix.event,
+                        "team_h": fix.team_h,
+                        "team_h_name": TEAM_FULL_NAMES.get(fix.team_h, f"Takım {fix.team_h}"),
+                        "team_h_short": TEAM_NAMES.get(fix.team_h, ""),
+                        "team_a": fix.team_a,
+                        "team_a_name": TEAM_FULL_NAMES.get(fix.team_a, f"Takım {fix.team_a}"),
+                        "team_a_short": TEAM_NAMES.get(fix.team_a, ""),
+                        "team_h_difficulty": fix.team_h_difficulty, "team_a_difficulty": fix.team_a_difficulty,
+                        "team_h_score": fix.team_h_score, "team_a_score": fix.team_a_score,
+                        "finished": fix.finished,
+                        "finished_provisional": getattr(fix, "finished_provisional", False),
+                        "minutes": getattr(fix, "minutes", 0),
+                        "started": fix.started,
+                        "kickoff_time": fix.kickoff_time.isoformat() if fix.kickoff_time else None
+                    })
+
+            rep = format_telegram_matches_report(fix_list, gw_val)
+            send_telegram_report(rep)
+            return {"matches_report": rep, "fixtures": fix_list, "fixture_gw": gw_val}
+        except Exception as e:
+            app_logger.error(f"Fikstür canlı çekilirken hata: {e}")
+            send_telegram_report(f"❌ Canlı fikstür verileri alınamadı: {e}")
+            return {}
 
     # FIXTURE SWING RADAR (Difficulty swing analysis)
     if matches_any(cmd_lower, ["/salincak", "/kolaymaclar", "/kolayfikstur", "/swings", "salıncak", "salincak", "kolay fikstür", "kolay fikstur"]):
