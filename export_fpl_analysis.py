@@ -628,8 +628,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                 price = el.now_cost / 10.0
                 total_cost += price
                 price_str = f"£{price:.1f}m"
-                cap = " 👑<b>(C)</b>" if p.get("is_captain") else (" 🥈<b>(VC)</b>" if p.get("is_vice_captain") else "")
-                p_text = f"• <b>{el.web_name}</b> ({team_s}) ➔ <b>{price_str}</b>{cap}"
+                p_text = f"• <b>{el.web_name}</b> ({team_s}) ➔ <b>{price_str}</b>"
                 if el.element_type == 1: gkps.append(p_text)
                 elif el.element_type == 2: defs.append(p_text)
                 elif el.element_type == 3: mids.append(p_text)

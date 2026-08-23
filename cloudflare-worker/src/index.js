@@ -233,8 +233,7 @@ async function fetchSquadReport(githubRepo) {
       totalCost += price;
 
       const priceStr = `£${price.toFixed(1)}m`;
-      const capTag = p.is_captain ? " 👑<b>(C)</b>" : (p.is_vice_captain ? " 🥈<b>(VC)</b>" : "");
-      const line = `• <b>${pName}</b> (${tCode}) ➔ <b>${priceStr}</b>${capTag}`;
+      const line = `• <b>${pName}</b> (${tCode}) ➔ <b>${priceStr}</b>`;
 
       if (el.element_type === 1) gks.push(line);
       else if (el.element_type === 2) defs.push(line);
