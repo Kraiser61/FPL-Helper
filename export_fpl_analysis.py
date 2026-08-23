@@ -1445,16 +1445,16 @@ def format_telegram_help_report() -> str:
     lines = [
         "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n",
         "🔹 <b>/analiz</b> ➔ Kayıtlı kadronuzun haftalık tam strateji analizi (Kaptan, İdeal 11, Transfer, Çip, Sakatlıklar).",
-        "🔹 <b>/ft [sayı]</b> ➔ Serbest transfer hakkınızı günceller (Örn: <code>/ft 2</code> veya <code>/ft 3</code>).",
+        "🔹 <b>/kadro</b> (veya <b>/kadrom</b>) ➔ Kayıtlı 15 kişilik kadronuzu mevki mevki, anlık değer ve takımlarıyla listeler.",
+        "🔹 <b>/yeni [15 Oyuncu]</b> ➔ 15 kişilik yeni kadronuzu sıfırdan kaydeder (Örn: <code>/yeni Raya, Gabriel, Saka, Haaland...</code>).",
+        "🔹 <b>/ft [0-5]</b> ➔ Serbest transfer (FT) hakkınızı günceller / görüntüler.",
         "🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve başlama saatleri (TSİ).",
-        "🔹 <b>/optimal</b> (veya <b>/ruyatimi</b>) ➔ £100m bütçe ile 590 oyuncu arasından çözülen en ideal 15 kişilik kadro.",
+        "🔹 <b>/optimal</b> ➔ £100m bütçe ile en ideal 15 kişilik Rüya Takım.",
         "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.",
         "🔹 <b>/sakatlar</b> (veya <b>/revir</b>) ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık durumu.",
-        "🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.",
+        "🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan takımlar.",
         "🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.",
-        "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadrodan tek bir oyuncuyu değiştirir (Örn: <code>/transfer Welbeck yerine Isak</code>).",
-        "🔹 <b>/kadrom</b> ➔ Kayıtlı 15 kişilik kadronuzu listeler.",
-        "🔹 <b>/kadro [15 Oyuncu]</b> ➔ Tüm 15 kişilik kadronuzu sıfırdan kaydeder.",
+        "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadroda oyuncu değiştirir.",
         "🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir."
     ]
     return "\n".join(lines)

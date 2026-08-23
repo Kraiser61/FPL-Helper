@@ -184,7 +184,8 @@ function getHelpText() {
   return [
     "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n",
     "🔹 <b>/analiz</b> ➔ Tam strateji ve 11 raporu (Kaptan, Transfer, Çip, Diziliş).",
-    "🔹 <b>/kadrom</b> ➔ Kayıtlı 15 kişilik kadronuzu mevki mevki, anlık değer ve takımlarıyla listeler.",
+    "🔹 <b>/kadro</b> (veya <b>/kadrom</b>) ➔ Kayıtlı 15 kişilik kadronuzu mevki mevki, anlık değer ve takımlarıyla listeler.",
+    "🔹 <b>/yeni [15 Oyuncu]</b> ➔ 15 kişilik yeni kadronuzu sıfırdan kaydeder (Örn: <code>/yeni Raya, Gabriel, Saka, Haaland...</code>).",
     "🔹 <b>/ft [0-5]</b> ➔ Serbest transfer (FT) hakkınızı günceller / görüntüler.",
     "🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve saatleri (TSİ).",
     "🔹 <b>/optimal</b> ➔ £100m bütçe ile en ideal 15 kişilik Rüya Takım.",
@@ -572,25 +573,27 @@ async function handleTelegramWebhook(request, env, ctx) {
     const wm = (config && config.wait_messages) ? config.wait_messages : {};
 
     // 1. KADRO LİSTELEME KOMUTLARI (⚡ Anında Cloudflare üzerinden yanıt verir)
-    const squadListCmds = ["kadrom", "takim", "takım", "15", "oyuncular", "kadromuz", "takımım", "takimim", "kadromu göster", "kadromu goster", "kadro listesi", "mevcut kadro", "mevcut kadrom"];
-    if (squadListCmds.includes(cleanCmd) || squadListCmds.includes(textLower) || cleanCmd === "kadro") {
-      // Eğer /kadro yazılmış ama yanında 15 oyuncu verilmemişse kadroyu listele
-      if (cleanCmd === "kadro" || textLower === "kadro" || textLower === "/kadro") {
-        ctx.waitUntil((async () => {
-          const rep = await fetchSquadReport(githubRepo);
-          await sendTelegramMessage(botToken, chatId, rep);
-        })());
-        return new Response("OK", { status: 200 });
-      } else if (squadListCmds.includes(cleanCmd) || squadListCmds.includes(textLower)) {
-        ctx.waitUntil((async () => {
-          const rep = await fetchSquadReport(githubRepo);
-          await sendTelegramMessage(botToken, chatId, rep);
-        })());
-        return new Response("OK", { status: 200 });
-      }
+    const squadListCmds = [
+      "kadro", "kadrom", "/kadro", "/kadrom",
+      "takim", "takım", "takimim", "takımım", "kadromuz",
+      "15", "oyuncular", "kadromu göster", "kadromu goster", "kadro listesi", "mevcut kadro", "mevcut kadrom"
+    ];
+    if (squadListCmds.includes(cleanCmd) || squadListCmds.includes(textLower)) {
+      ctx.waitUntil((async () => {
+        const rep = await fetchSquadReport(githubRepo);
+        await sendTelegramMessage(botToken, chatId, rep);
+      })());
+      return new Response("OK", { status: 200 });
     }
 
-    // 2. AĞIR MOTOR & ÇÖZÜCÜ KOMUTLARI (GitHub Actions Tetikler + Anında Geri Bildirim)
+    // 2. YENİ KADRO TANIMLAMA YARDIMI (Oyuncu listesi verilmemişse rehber mesajı döner)
+    if (cleanCmd === "yeni" || textLower === "yeni" || textLower === "/yeni") {
+      const guideMsg = "ℹ️ <b>15 Kişilik Yeni Kadro Tanımlama:</b>\n\nLütfen 15 oyuncu ismini aralarında virgül bırakarak yazın.\n\n<b>Örnek Kullanım:</b>\n<code>/yeni Raya, Leno, Gabriel, Saliba, Robinson, Konsa, Greaves, Salah, Palmer, Saka, Rogers, Winks, Haaland, Wood, Stewart</code>";
+      ctx.waitUntil(sendTelegramMessage(botToken, chatId, guideMsg));
+      return new Response("OK", { status: 200 });
+    }
+
+    // 3. AĞIR MOTOR & ÇÖZÜCÜ KOMUTLARI (GitHub Actions Tetikler + Anında Geri Bildirim)
     let isActionCommand = false;
     let actionWaitKey = "analiz";
 
@@ -604,7 +607,7 @@ async function handleTelegramWebhook(request, env, ctx) {
             if (/optimal|ruya|rüya|wildcard/i.test(text)) actionWaitKey = "optimal";
             else if (/transfer|yerine/i.test(text)) actionWaitKey = "transfer";
             else if (/ft|hak/i.test(text)) actionWaitKey = "ft";
-            else if (/kadro/i.test(text)) actionWaitKey = "kadro";
+            else if (/yeni|kadro/i.test(text)) actionWaitKey = "yeni";
             break;
           }
         } catch (err) {}
@@ -619,14 +622,15 @@ async function handleTelegramWebhook(request, env, ctx) {
         textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine") ||
         textLower.startsWith("/ft") || textLower.startsWith("ft") || cleanCmd === "ft" ||
         textLower.startsWith("/hak") || textLower.startsWith("hak") || cleanCmd === "hak" ||
-        (textLower.startsWith("/kadro ") || textLower.startsWith("kadro ")) ||
+        textLower.startsWith("/yeni ") || textLower.startsWith("yeni ") ||
+        textLower.startsWith("/kadro ") || textLower.startsWith("kadro ") ||
         cleanCmd === "analiz" || cleanCmd === "taktik"
       ) {
         isActionCommand = true;
         if (cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard") actionWaitKey = "optimal";
         else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) actionWaitKey = "transfer";
         else if (textLower.startsWith("/ft") || textLower.startsWith("ft") || textLower.startsWith("/hak") || textLower.startsWith("hak")) actionWaitKey = "ft";
-        else if (textLower.startsWith("/kadro ") || textLower.startsWith("kadro ")) actionWaitKey = "kadro";
+        else if (textLower.startsWith("/yeni ") || textLower.startsWith("yeni ") || textLower.startsWith("/kadro ") || textLower.startsWith("kadro ")) actionWaitKey = "yeni";
         else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) actionWaitKey = "adopt_dream_team";
       }
     }

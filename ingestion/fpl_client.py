@@ -30,8 +30,10 @@ def parse_raw_text_to_team_data(raw_text: str, elements: list) -> dict:
         return t.strip().lower()
 
     clean_raw = raw_text.strip()
-    if clean_raw.lower().startswith("/kadro"):
-        clean_raw = clean_raw[6:].strip()
+    for prefix in ["/yeni", "yeni", "/kadro", "kadro"]:
+        if clean_raw.lower().startswith(prefix):
+            clean_raw = clean_raw[len(prefix):].strip()
+            break
 
     tokens = re.split(r'[\n\r,;]+', clean_raw)
     tokens = [t.strip() for t in tokens if t.strip()]

@@ -4,7 +4,8 @@
     "analiz": "🧠 <b>Strateji analizi başlatıldı...</b>\n<i>Haftalık kadro ve transfer analizi hazırlanıyor (75-85 sn).</i>",
     "transfer": "🔄 <b>Transfer isteğiniz işleniyor...</b>",
     "ft": "⚙️ <b>Serbest transfer hakkınız güncelleniyor...</b>",
-    "kadro": "📋 <b>15 kişilik kadronuz kaydediliyor...</b>",
+    "kadro": "📋 <b>15 kişilik yeni kadronuz kaydediliyor...</b>",
+    "yeni": "📋 <b>15 kişilik yeni kadronuz kaydediliyor...</b>",
     "adopt_dream_team": "📋 <b>Kadro güncelleme başlatıldı...</b>"
   },
   "durations": {
@@ -15,6 +16,7 @@
     "^\\/?ft(\\s+[0-5])?$",
     "^\\/?hak(\\s+[0-5])?$",
     "^\\/?transfer",
+    "^\\/?yeni\\s+[^\\s]+",
     "^\\/?kadro\\s+[^\\s]+",
     "^\\/?optimal",
     "^\\/?ruyatimi",
@@ -27,7 +29,7 @@
     "rüya takım",
     "ruya takim"
   ],
-  "help_text": "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n\n🔹 <b>/analiz</b> ➔ Tam strateji ve 11 raporu (Kaptan, Transfer, Çip, Diziliş).\n🔹 <b>/kadrom</b> ➔ Kayıtlı 15 kişilik kadronuzu mevki mevki, anlık değer ve takımlarıyla listeler.\n🔹 <b>/ft [0-5]</b> ➔ Serbest transfer (FT) hakkınızı günceller / görüntüler.\n🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve saatleri (TSİ).\n🔹 <b>/optimal</b> ➔ £100m bütçe ile en ideal 15 kişilik Rüya Takım.\n🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.\n🔹 <b>/sakatlar</b> ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık raporu.\n🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan takımlar.\n🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.\n🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadroda oyuncu değiştirir.\n🔹 <b>/yardim</b> ➔ Bu komut listesini getirir.",
+  "help_text": "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n\n🔹 <b>/analiz</b> ➔ Kayıtlı kadronuzun haftalık tam strateji analizi (Kaptan, İdeal 11, Transfer, Çip, Sakatlıklar).\n🔹 <b>/kadro</b> (veya <b>/kadrom</b>) ➔ Kayıtlı 15 kişilik kadronuzu mevki mevki, anlık değer ve takımlarıyla listeler.\n🔹 <b>/yeni [15 Oyuncu]</b> ➔ 15 kişilik yeni kadronuzu sıfırdan kaydeder (Örn: <code>/yeni Raya, Gabriel, Saka, Haaland...</code>).\n🔹 <b>/ft [0-5]</b> ➔ Serbest transfer (FT) hakkınızı günceller / görüntüler.\n🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve saatleri (TSİ).\n🔹 <b>/optimal</b> ➔ £100m bütçe ile en ideal 15 kişilik Rüya Takım.\n🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.\n🔹 <b>/sakatlar</b> ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık raporu.\n🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan takımlar.\n🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.\n🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadroda oyuncu değiştirir.\n🔹 <b>/yardim</b> ➔ Bu komut listesini getirir.",
   "stale_warning_template": "⚠️ <b>Analiz Verileri Güncel Değil:</b>\nKayıtlı son analiz <b>{time}</b> tarihinde üretilmiş (2 saatlik geçerlilik süresi doldu).\n\nEn güncel transfer trendleri, sakatlıklar ve maç verileriyle yanıt alabilmek için lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n<i>💡 <b>/analiz</b> ve <b>/optimal</b> komutları her zaman motoru canlı tetikleyerek verileri sıfırdan hesaplar.</i>",
   "unrecognized_command": "🤖 <b>Komut anlaşılamadı.</b> Mevcut komutlar için <b>/yardim</b> yazabilirsiniz."
 }
