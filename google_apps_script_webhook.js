@@ -45,7 +45,7 @@ function handleTelegramWebhook(e) {
       textLower.startsWith("/kadro")
     ) {
       if (cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard") {
-        sendTelegramMessage(chatId, "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (~10 sn).</i>");
+        sendTelegramMessage(chatId, "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (50-65 sn).</i>");
       } else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) {
         sendTelegramMessage(chatId, "🔄 <b>Transfer isteğiniz işleniyor...</b>");
       } else if (textLower.startsWith("/kadro")) {
@@ -53,7 +53,7 @@ function handleTelegramWebhook(e) {
       } else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) {
         sendTelegramMessage(chatId, "📋 <b>Kadro güncelleme başlatıldı...</b>");
       } else {
-        sendTelegramMessage(chatId, "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (~35 sn).</i>");
+        sendTelegramMessage(chatId, "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (75-85 sn).</i>");
       }
       triggerGitHubActions(text, chatId);
       return HtmlService.createHtmlOutput("OK");
