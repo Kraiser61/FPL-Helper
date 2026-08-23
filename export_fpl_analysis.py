@@ -405,7 +405,7 @@ def format_html_golden_path(bundle: DecisionBundle) -> str:
     body.append(f"""
     <div class="card">
       <div style="font-size: 20px; font-weight: 800; color: #c084fc;">🛣️ STRATEJİK YOL HARİTASI</div>
-      <div style="font-size: 13px; color: #94a3b8; font-weight: 600; margin-top: 3px;">HiGHS MIP Çok Dönemli Plan</div>
+      <div style="font-size: 13px; color: #94a3b8; font-weight: 600; margin-top: 3px;">Haftalık Strateji Planı</div>
     </div>
     """)
 
@@ -1188,8 +1188,7 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
         lines.append(custom_header)
     else:
         lines.append(f"🦁 <b>FPL STRATEJİ RAPORU (GW{gw})</b>")
-    lines.append(f"🎟️ <b>Mevcut Hak:</b> <b>{ft_display}</b> (Serbest Transfer)")
-    lines.append(f"<i>Yapay Zeka & Poisson-Elo Projeksiyon Çözümü</i>\n")
+    lines.append(f"🎟️ <b>Mevcut Hak:</b> <b>{ft_display}</b> (Serbest Transfer)\n")
 
     # 1. Kaptan & 2. Kaptan
     cap = lineup.get("captain", {})
@@ -1480,8 +1479,7 @@ def solve_optimal_squad(horizon_gws: int = 5) -> str:
             return ", ".join(items)
             
         lines = []
-        lines.append(f"✨ <b>MATEMATİKSEL EN OPTİMAL 15 (WILDCARD / RÜYA TAKIM)</b>")
-        lines.append(f"<i>£100.0m Bütçe Kısıtı | 590 Oyuncu Arasından MIP Çözümü</i>\n")
+        lines.append(f"✨ <b>EN OPTİMAL 15 (RÜYA TAKIM)</b>\n")
         lines.append(f"🧤 <b>KL:</b> {fmt_group(gkps)}")
         lines.append(f"🛡️ <b>DF:</b> {fmt_group(defs)}")
         lines.append(f"⚙️ <b>OS:</b> {fmt_group(mids)}")

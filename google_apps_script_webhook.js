@@ -44,9 +44,10 @@ function fetchBotConfig() {
   // Güvenli varsayılan fallback
   return {
     wait_messages: {
-      optimal: "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (50-65 sn).</i>",
-      analiz: "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (75-85 sn).</i>",
+      optimal: "✨ <b>Rüya Takım hesaplanıyor...</b>\n<i>En ideal 15 kişilik kadro hesaplanıyor (50-65 sn).</i>",
+      analiz: "🧠 <b>Strateji analizi başlatıldı...</b>\n<i>Haftalık kadro ve transfer analizi hazırlanıyor (75-85 sn).</i>",
       transfer: "🔄 <b>Transfer isteğiniz işleniyor...</b>",
+      ft: "⚙️ <b>Serbest transfer hakkınız güncelleniyor...</b>",
       kadro: "📋 <b>15 kişilik kadronuz kaydediliyor...</b>",
       adopt_dream_team: "📋 <b>Kadro güncelleme başlatıldı...</b>"
     },
@@ -83,7 +84,7 @@ function handleTelegramWebhook(e) {
       cleanCmd === "analiz" || cleanCmd === "kadrom" || cleanCmd === "taktik"
     ) {
       if (cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard") {
-        sendTelegramMessage(chatId, wm.optimal || "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (50-65 sn).</i>");
+        sendTelegramMessage(chatId, wm.optimal || "✨ <b>Rüya Takım hesaplanıyor...</b>\n<i>En ideal 15 kişilik kadro hesaplanıyor (50-65 sn).</i>");
       } else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) {
         sendTelegramMessage(chatId, wm.transfer || "🔄 <b>Transfer isteğiniz işleniyor...</b>");
       } else if (textLower.startsWith("/ft") || textLower.startsWith("ft") || textLower.startsWith("/hak") || textLower.startsWith("hak")) {
@@ -93,7 +94,7 @@ function handleTelegramWebhook(e) {
       } else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) {
         sendTelegramMessage(chatId, wm.adopt_dream_team || "📋 <b>Kadro güncelleme başlatıldı...</b>");
       } else {
-        sendTelegramMessage(chatId, wm.analiz || "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (75-85 sn).</i>");
+        sendTelegramMessage(chatId, wm.analiz || "🧠 <b>Strateji analizi başlatıldı...</b>\n<i>Haftalık kadro ve transfer analizi hazırlanıyor (75-85 sn).</i>");
       }
       triggerGitHubActions(text, chatId);
       return HtmlService.createHtmlOutput("OK");

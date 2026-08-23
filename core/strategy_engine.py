@@ -368,7 +368,7 @@ class StrategyEngine:
                 out_names = ", ".join([t["name"] for t in t_outs])
                 action_str = f"❌ {out_names} ──► ✅ {in_names}{chip_tag}"
                 target_str = f"Net xP Artışı & Bütçe: £{p_step.get('itb', 0.0):.1f}m"
-                reason_str = "HiGHS MIP optimum puan getirisini maksimize eden transfer rotası."
+                reason_str = "Gelecek haftalarda takım puan getirisini maksimize eden transfer rotası."
             elif p_step.get("chip") == "WC":
                 action_str = f"🃏 Wildcard ile Kadro Yenileme"
                 target_str = f"Geniş Kadro Optimizasyonu"
@@ -413,7 +413,7 @@ class StrategyEngine:
 
             in_names_str = ", ".join([p.web_name for p in gw1_ins])
             out_names_str = ", ".join([p.web_name for p in gw1_outs])
-            summary_str = f"HiGHS optimizasyonu: {out_names_str} ──► {in_names_str} hamlesi ile takım puan beklentisi artırıldı."
+            summary_str = f"Transfer önerisi: {out_names_str} ──► {in_names_str} hamlesi ile takım puan beklentisi artırıldı."
 
             primary_action = {
                 "type": "transfer",
@@ -444,7 +444,7 @@ class StrategyEngine:
                 alt_desc = "Mevcut 15 kişilik kadronuzla 1. haftaya başlayabilir, lig başladıktan sonra haftalık transferlerinizi planlayabilirsiniz."
             else:
                 target_ft = min(5, ft_count + 1)
-                roll_summary = "Open-FPL-Solver analizine göre bu hafta transfer hakkınızı saklamak (Roll FT) uzun vadede daha yüksek matematiksel değer üretiyor."
+                roll_summary = "Bu hafta transfer hakkınızı saklamak (Roll FT) uzun vadede daha avantajlı bir plan sunuyor."
                 roll_reasons = [
                     "Mevcut 11'inizin puan potansiyeli bu hafta için yeterince dengeli ve güçlü.",
                     "Acil transfer gerektiren kritik bir sakatlık veya değer kaybı bulunmuyor.",
@@ -540,7 +540,7 @@ class StrategyEngine:
                 is_differential=cap_p.ownership < 15.0,
                 boom_prob=cap_p.boom_prob,
                 boom_index=cap_p.boom_index,
-                reason=f"{cap_p.web_name}: {cap_p.xp_next_gw:.1f} xP | MIP Optimum Kaptanlık Tercihi",
+                reason=f"{cap_p.web_name}: {cap_p.xp_next_gw:.1f} xP | En Yüksek Beklentili Kaptan",
             ))
         if vcap_p:
             captain_picks.append(CaptainRecommendation(
@@ -553,7 +553,7 @@ class StrategyEngine:
             ))
 
         scenario_res = ScenarioResult(
-            name="Open-FPL-Solver Optimum Çözüm",
+            name="Optimum Kadro Planı",
             scenario_type="optimum",
             transfers_in=gw1_ins,
             transfers_out=gw1_outs,
@@ -567,10 +567,9 @@ class StrategyEngine:
             recommended_captain=cap_p,
             recommended_vice_captain=vcap_p,
             strategic_reasons=[
-                f"HiGHS çözücüsü {horizon_gws} haftalık ufukta toplam {best_res.total_xp:.1f} xP puan getirdi.",
-                f"Çözüm skoru (decay dahil): {best_res.score:.2f}.",
+                f"{horizon_gws} haftalık ufukta toplam {best_res.total_xp:.1f} xP puan beklentisi hedeflendi.",
             ],
-            short_summary=f"MIP Optimum Plan: {'Transfer' if has_transfers else 'Roll FT'}",
+            short_summary=f"Strateji Planı: {'Transfer' if has_transfers else 'Roll FT'}",
         )
 
         chip_advice = self._evaluate_chip_strategy(current_gw, my_team)

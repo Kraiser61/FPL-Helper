@@ -1,7 +1,7 @@
 {
   "wait_messages": {
-    "optimal": "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (50-65 sn).</i>",
-    "analiz": "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (75-85 sn).</i>",
+    "optimal": "✨ <b>Rüya Takım hesaplanıyor...</b>\n<i>En ideal 15 kişilik kadro hesaplanıyor (50-65 sn).</i>",
+    "analiz": "🧠 <b>Strateji analizi başlatıldı...</b>\n<i>Haftalık kadro ve transfer analizi hazırlanıyor (75-85 sn).</i>",
     "transfer": "🔄 <b>Transfer isteğiniz işleniyor...</b>",
     "ft": "⚙️ <b>Serbest transfer hakkınız güncelleniyor...</b>",
     "kadro": "📋 <b>15 kişilik kadronuz kaydediliyor...</b>",
