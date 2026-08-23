@@ -507,20 +507,8 @@ class StrategyEngine:
                 "text": f"💡 Fikstür Dönüşü: {s.get('description', '')}",
             })
 
-        # Lineup & Captains from Solver
-        lineup_df, bench_df, cap_info, vcap_info = self.solver_service.extract_gameweek_squad(best_res, gameweek=current_gw)
-        starters = [analyses[pid] for pid in lineup_df["id"].tolist() if pid in analyses]
-        bench = [analyses[pid] for pid in bench_df["id"].tolist() if pid in analyses]
-        cap_p = analyses[cap_info["id"]] if cap_info and cap_info["id"] in analyses else (starters[0] if starters else None)
-        vcap_p = analyses[vcap_info["id"]] if vcap_info and vcap_info["id"] in analyses else (starters[1] if len(starters) > 1 else None)
-
-        def_count = len([p for p in starters if p.element_type == 2])
-        mid_count = len([p for p in starters if p.element_type == 3])
-        fwd_count = len([p for p in starters if p.element_type == 4])
-        formation_str = f"{def_count}-{mid_count}-{fwd_count}"
-
-        opt_11_xp = float(lineup_df["xP"].sum()) if not lineup_df.empty else sum(p.xp_next_gw for p in starters)
-        total_lineup_xp = round(opt_11_xp, 1)
+        # Lineup & Captains derived strictly from the CURRENT squad (pre-transfer)
+        starters, bench, formation_str, cap_p, vcap_p, total_lineup_xp = self._select_optimal_lineup_from_squad(squad_analyses)
 
         lineup_summary = {
             "formation": formation_str or "3-5-2",
@@ -657,3 +645,53 @@ class StrategyEngine:
         if urgent_rises:
             return f"🚨 ACİL FİYAT UYARISI: {urgent_rises[0]['web_name']} için bu gece £0.1m fiyat artışı bekleniyor. Bütçe elvermiyorsa erken transfer yapılabilir."
         return "📌 TOP 10K ZAMANLAMA KURALI: Acil fiyat artış riski yok. Sakatlık haberleri ve Cuma günü basın toplantılarını beklemek %99 daha avantajlıdır."
+
+    def _select_optimal_lineup_from_squad(
+        self, squad_analyses: List[PlayerAnalysis]
+    ) -> Tuple[List[PlayerAnalysis], List[PlayerAnalysis], str, Optional[PlayerAnalysis], Optional[PlayerAnalysis], float]:
+        """
+        Selects the best starting 11, bench, formation, captain and vice-captain
+        strictly from the CURRENT 15-player squad (without applying prospective transfers).
+        """
+        gks = sorted([p for p in squad_analyses if p.element_type == 1], key=lambda x: x.xp_next_gw, reverse=True)
+        defs = sorted([p for p in squad_analyses if p.element_type == 2], key=lambda x: x.xp_next_gw, reverse=True)
+        mids = sorted([p for p in squad_analyses if p.element_type == 3], key=lambda x: x.xp_next_gw, reverse=True)
+        fwds = sorted([p for p in squad_analyses if p.element_type == 4], key=lambda x: x.xp_next_gw, reverse=True)
+
+        starter_gk = gks[:1]
+        bench_gk = gks[1:]
+
+        valid_formations = [
+            (3, 5, 2), (3, 4, 3), (4, 4, 2), (4, 3, 3),
+            (4, 5, 1), (5, 3, 2), (5, 4, 1), (5, 2, 3)
+        ]
+
+        best_score = -1.0
+        best_starters: List[PlayerAnalysis] = []
+        best_bench: List[PlayerAnalysis] = []
+        best_formation = "3-5-2"
+
+        for d_cnt, m_cnt, f_cnt in valid_formations:
+            if len(defs) < d_cnt or len(mids) < m_cnt or len(fwds) < f_cnt:
+                continue
+            curr_starters = starter_gk + defs[:d_cnt] + mids[:m_cnt] + fwds[:f_cnt]
+            curr_bench = bench_gk + sorted(defs[d_cnt:] + mids[m_cnt:] + fwds[f_cnt:], key=lambda x: x.xp_next_gw, reverse=True)
+            score = sum(p.xp_next_gw for p in curr_starters)
+            if score > best_score:
+                best_score = score
+                best_starters = curr_starters
+                best_bench = curr_bench
+                best_formation = f"{d_cnt}-{m_cnt}-{f_cnt}"
+
+        if not best_starters:
+            best_starters = squad_analyses[:11]
+            best_bench = squad_analyses[11:]
+            best_score = sum(p.xp_next_gw for p in best_starters)
+            best_formation = "3-5-2"
+
+        # Captain & Vice-captain from current squad starters
+        sorted_by_xp = sorted(best_starters, key=lambda x: (x.xp_next_gw, x.boom_index), reverse=True)
+        cap = sorted_by_xp[0] if sorted_by_xp else None
+        vcap = sorted_by_xp[1] if len(sorted_by_xp) > 1 else None
+
+        return best_starters, best_bench, best_formation, cap, vcap, round(best_score, 1)
