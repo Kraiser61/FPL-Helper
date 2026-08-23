@@ -96,7 +96,7 @@
     "chips": [],
     "transfers": {
       "bank": 0,
-      "limit": 1,
+      "limit": 3,
       "made": 0
     }
   }
