@@ -1,0 +1,8 @@
+name = "fpl-helper-bot"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+account_id = "d905a57fa040e40ce5822a7a17c6b8ac"
+
+[vars]
+BOT_TOKEN = "8315284284:AAF4HjtfP1kW5rNUPRe5n1J1KBg4PsT83Jg"
+GITHUB_REPO = "Kraiser61/FPL-Helper"

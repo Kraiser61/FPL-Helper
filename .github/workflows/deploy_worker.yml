@@ -1,0 +1,27 @@
+name: Deploy Telegram Bot to Cloudflare Workers
+
+on:
+  push:
+    paths:
+      - 'cloudflare-worker/**'
+      - '.github/workflows/deploy_worker.yml'
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: 'cloudflare-worker'
+          secrets: |
+            GITHUB_PAT
+        env:
+          GITHUB_PAT: ${{ secrets.GH_PAT || secrets.PERSONAL_ACCESS_TOKEN || secrets.PAT || '' }}
