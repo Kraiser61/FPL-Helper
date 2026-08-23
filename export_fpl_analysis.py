@@ -558,35 +558,47 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
 
     # 1.1 FT / TRANSFER HAKKI AYARLAMA (/ft, /ft 2, /ft 3, ft 1, /hak 2 vb.)
     if cmd_lower.startswith("/ft") or cmd_lower.startswith("ft ") or cmd_lower == "ft" or cmd_lower.startswith("/hak") or cmd_lower.startswith("hak ") or cmd_lower == "hak":
-        from ingestion.local_sync_server import load_synced_team_from_disk, save_synced_team_to_disk
+        from ingestion.local_sync_server import load_synced_team_from_disk, save_synced_team_to_disk, rollover_free_transfers
         synced = load_synced_team_from_disk(chat_id=chat_id)
         if not synced or "team_data" not in synced:
             synced = {"manager_id": manager_id, "team_data": {"picks": [], "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}}}
         
+        bootstrap = await fpl_client.get_bootstrap_static()
+        current_event = next((e for e in bootstrap.events if e.is_current), None)
+        next_event = next((e for e in bootstrap.events if e.is_next), None)
+        active_gw = (next_event.id if next_event else (current_event.id if current_event and not current_event.finished else 1))
+
+        # Check and apply rollover if gameweek advanced
+        synced, _ = rollover_free_transfers(synced, active_gw, is_preseason=False)
+
         import re
         m_num = re.search(r'\b([0-5])\b', raw_team_data)
         if m_num:
             new_ft = int(m_num.group(1))
             if "transfers" not in synced["team_data"]:
-                synced["team_data"]["transfers"] = {"bank": 0, "limit": new_ft, "made": 0}
+                synced["team_data"]["transfers"] = {"bank": 0, "limit": new_ft, "made": 0, "last_updated_gw": active_gw}
             else:
                 synced["team_data"]["transfers"]["limit"] = new_ft
+                synced["team_data"]["transfers"]["made"] = 0
+                synced["team_data"]["transfers"]["last_updated_gw"] = active_gw
             save_synced_team_to_disk(synced, chat_id=chat_id)
             
             ft_resp = (
                 f"✅ <b>Serbest Transfer Hakkınız Güncellendi!</b>\n\n"
-                f"🎯 <b>Tanımlanan Hak:</b> <b>{new_ft} FT</b> (Serbest Transfer)\n\n"
-                f"<i>Çözücü motoru artık bu hak sınırına göre optimizasyon yapacaktır. Güncel öneriler için <b>/analiz</b> yazabilirsiniz.</i>"
+                f"🎯 <b>Tanımlanan Hak:</b> <b>{new_ft} FT</b> (GW{active_gw} İçin)\n\n"
+                f"<i>Yeni haftaya (deadline) girildiğinde haklarınız kurallara uygun olarak otomatik +1 devredecektir (max 5 FT).</i>\n\n"
+                f"<i>Strateji analizi için <b>/analiz</b> yazabilirsiniz.</i>"
             )
             send_telegram_report(ft_resp)
-            return {"ft_updated": new_ft}
+            return {"ft_updated": new_ft, "gw": active_gw}
         else:
             current_ft = synced.get("team_data", {}).get("transfers", {}).get("limit", 1)
+            last_gw_info = synced.get("team_data", {}).get("transfers", {}).get("last_updated_gw", active_gw)
             ft_info = (
-                f"ℹ️ <b>Kayıtlı Serbest Transfer Hakkınız:</b> <b>{current_ft} FT</b>\n\n"
+                f"ℹ️ <b>Kayıtlı Serbest Transfer Hakkınız:</b> <b>{current_ft} FT</b> (GW{last_gw_info})\n\n"
                 f"Hakkınızı değiştirmek için:\n"
                 f"👉 <b>/ft [sayı]</b> (Örnek: <b>/ft 2</b> veya <b>/ft 3</b>)\n\n"
-                f"<i>FPL kuralları gereği 1 ile 5 arasında serbest transfer biriktirebilirsiniz.</i>"
+                f"<i>FPL kuralları gereği her hafta +1 eklenir ve 1 ile 5 arasında serbest transfer biriktirilebilir.</i>"
             )
             send_telegram_report(ft_info)
             return {"current_ft": current_ft}
@@ -866,6 +878,12 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                                 failed.append((p_out_str, p_in_str, ", ".join(reason_parts)))
 
                         if applied:
+                            tr_dict = synced["team_data"].get("transfers", {})
+                            cur_limit = tr_dict.get("limit", 1)
+                            new_limit = max(0, cur_limit - len(applied))
+                            tr_dict["limit"] = new_limit
+                            tr_dict["made"] = tr_dict.get("made", 0) + len(applied)
+                            synced["team_data"]["transfers"] = tr_dict
                             save_synced_team_to_disk({"manager_id": manager_id, "team_data": synced["team_data"]}, chat_id=chat_id)
                             
                             lines = []
@@ -875,14 +893,15 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                                 i_team = TEAM_NAMES.get(i_p.team, "")
                                 lines.append("🔄 <b>Transfer Başarıyla Uygulandı!</b>\n")
                                 lines.append(f"🔴 <b>Çıkan:</b> {o_p.web_name} ({o_team})")
-                                lines.append(f"🟢 <b>Giren:</b> {i_p.web_name} ({i_team})\n")
+                                lines.append(f"🟢 <b>Giren:</b> {i_p.web_name} ({i_team})")
+                                lines.append(f"🎟️ <b>Kalan Transfer Hakkı:</b> <b>{new_limit} FT</b>\n")
                             else:
                                 lines.append(f"🔄 <b>{len(applied)} Transfer Başarıyla Uygulandı!</b>\n")
                                 for idx, (o_p, i_p) in enumerate(applied, 1):
                                     o_team = TEAM_NAMES.get(o_p.team, "")
                                     i_team = TEAM_NAMES.get(i_p.team, "")
                                     lines.append(f"{idx}. 🔴 <b>Çıkan:</b> {o_p.web_name} ({o_team}) ➔ 🟢 <b>Giren:</b> {i_p.web_name} ({i_team})")
-                                lines.append("")
+                                lines.append(f"\n🎟️ <b>Kalan Transfer Hakkı:</b> <b>{new_limit} FT</b>\n")
                             
                             if failed:
                                 lines.append("⚠️ <b>Uygulanamayanlar:</b>")
@@ -894,7 +913,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                             
                             transfer_notification_text = "\n".join(lines)
                             send_telegram_report(transfer_notification_text)
-                            app_logger.success(f"Applied {len(applied)} transfers (chat_id: {chat_id})")
+                            app_logger.success(f"Applied {len(applied)} transfers (chat_id: {chat_id}, remaining FT: {new_limit})")
                             return {}
                         elif failed:
                             lines = ["❌ <b>Transferler Uygulanamadı:</b>\n"]
@@ -1158,11 +1177,18 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
             return f"{name} ({team})"
         return name
 
+    ft_count = meta.get("free_transfers", 1)
+    if meta.get("is_preseason", False) or (isinstance(ft_count, int) and ft_count >= 90):
+        ft_display = "∞ Sınırsız (Sezon Öncesi)"
+    else:
+        ft_display = f"{ft_count} FT"
+
     lines = []
     if custom_header:
         lines.append(custom_header)
     else:
         lines.append(f"🦁 <b>FPL STRATEJİ RAPORU (GW{gw})</b>")
+    lines.append(f"🎟️ <b>Mevcut Hak:</b> <b>{ft_display}</b> (Serbest Transfer)")
     lines.append(f"<i>Yapay Zeka & Poisson-Elo Projeksiyon Çözümü</i>\n")
 
     # 1. Kaptan & 2. Kaptan
@@ -1183,10 +1209,11 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
         if min_len == 1:
             tin = get_pname(t_ins_list[0])
             tout = get_pname(t_outs_list[0])
-            lines.append(f"🎯 <b>Transfer:</b> 🔴 {tout} ➔ 🟢 {tin}")
+            lines.append(f"🎯 <b>Transfer Kararı ({ft_display} Mevcut):</b>")
+            lines.append(f"   🔴 {tout} ➔ 🟢 {tin}")
             lines.append(f"   <i>Beklenen Net Kazanç: +{gain:.2f} xPts</i>\n")
         else:
-            lines.append(f"🎯 <b>Çoklu Transfer:</b>")
+            lines.append(f"🎯 <b>Çoklu Transfer Kararı ({ft_display} Mevcut):</b>")
             for i in range(min_len):
                 tin = get_pname(t_ins_list[i])
                 tout = get_pname(t_outs_list[i])
@@ -1195,11 +1222,12 @@ def format_telegram_report(payload: dict, custom_header: str = "") -> str:
     else:
         is_pre = meta.get("is_preseason", False) or gw == 1
         if is_pre:
-            lines.append("🎯 <b>Transfer:</b> 🛡️ Kadroyu Koru (Değişiklik Yapma)")
+            lines.append(f"🎯 <b>Transfer Kararı ({ft_display}):</b> 🛡️ Kadroyu Koru")
             lines.append("   <i>Tavsiye: 1. haftaya mevcut kadroyla başla (GW2 için 1 FT tanımlanacak).</i>\n")
         else:
-            lines.append("🎯 <b>Transfer:</b> 🛡️ Transferi Pas Geç (Roll FT)")
-            lines.append("   <i>Tavsiye: Gelecek hafta için FT hakkını devret ve biriktir.</i>\n")
+            lines.append(f"🎯 <b>Transfer Kararı ({ft_display} Mevcut):</b> 🛡️ Transferi Pas Geç (Roll FT)")
+            next_ft_est = min(5, ft_count + 1) if isinstance(ft_count, int) else 2
+            lines.append(f"   <i>Tavsiye: Hakkını gelecek haftaya devret (GW{gw+1}'e {next_ft_est} FT ile başla).</i>\n")
 
     # 3. İdeal 11 & Diziliş
     formation = lineup.get("formation", "3-5-2")

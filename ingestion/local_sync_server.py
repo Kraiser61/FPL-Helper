@@ -60,6 +60,47 @@ def load_synced_team_from_disk(chat_id: Optional[str] = None) -> Optional[Dict[s
                 app_logger.error(f"Failed to load synced team from disk at {path}: {e}")
     return None
 
+def rollover_free_transfers(data: Dict[str, Any], current_gw: int, is_preseason: bool = False) -> tuple[Dict[str, Any], bool]:
+    """
+    Evaluates gameweek advancement and rolls over free transfers according to 2024/25 rules (max 5 FTs).
+    Returns (updated_data, has_changed).
+    """
+    if not data or "team_data" not in data or is_preseason or current_gw <= 1:
+        return data, False
+
+    td = data["team_data"]
+    if "transfers" not in td or not isinstance(td["transfers"], dict):
+        td["transfers"] = {"bank": 0, "limit": 1, "made": 0, "last_updated_gw": current_gw}
+        return data, True
+
+    tr = td["transfers"]
+    last_gw = tr.get("last_updated_gw")
+    
+    if last_gw is None:
+        tr["last_updated_gw"] = current_gw
+        return data, True
+
+    if current_gw > last_gw:
+        diff_gws = current_gw - last_gw
+        limit = tr.get("limit", 1)
+        made = tr.get("made", 0)
+
+        # First passed week rolls over from limit - made + 1
+        new_limit = max(0, limit - made) + 1
+        new_limit = min(5, new_limit)
+
+        # Subsequent passed weeks add +1 each (since 0 made)
+        for _ in range(1, diff_gws):
+            new_limit = min(5, new_limit + 1)
+
+        tr["limit"] = new_limit
+        tr["made"] = 0
+        tr["last_updated_gw"] = current_gw
+        app_logger.success(f"Gameweek rollover applied (GW{last_gw} -> GW{current_gw}): New FT Limit = {new_limit}")
+        return data, True
+
+    return data, False
+
 
 
 

@@ -97,7 +97,8 @@
     "transfers": {
       "bank": 0,
       "limit": 3,
-      "made": 0
+      "made": 0,
+      "last_updated_gw": 2
     }
   }
 }

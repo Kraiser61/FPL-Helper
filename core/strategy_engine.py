@@ -171,6 +171,15 @@ class StrategyEngine:
             current_gw = 1
             is_preseason = not bootstrap.events[0].finished if bootstrap.events else True
 
+        # Check and apply gameweek rollover on local synced squad
+        from ingestion.local_sync_server import load_synced_team_from_disk, save_synced_team_to_disk, rollover_free_transfers
+        synced = load_synced_team_from_disk(chat_id=chat_id)
+        if synced:
+            updated_synced, changed = rollover_free_transfers(synced, current_gw, is_preseason=is_preseason)
+            if changed:
+                save_synced_team_to_disk(updated_synced, chat_id=chat_id)
+                raw_limit = updated_synced.get("team_data", {}).get("transfers", {}).get("limit", raw_limit)
+
         if is_preseason or (raw_limit is not None and raw_limit >= 90):
             free_transfers = 99
             transfers_str = "∞ Sınırsız Transfer (Sezon Öncesi)"
