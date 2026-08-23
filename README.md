@@ -45,11 +45,11 @@ Sistem; masaüstü **PySide6 / Qt** arayüzü, bulutta otomatik çalışan **Git
   * 🃏 **Çip & Zamanlama:** Çip durumları ve kullanım tavsiyesi.
   * 🏥 **Sağlık & Fiyat Radarı:** Sakatlık olasılıkları ve beklenen fiyat artış/düşüş alarmları.
 
-### 4. ⚡ Safari Tek Tık Kadro Senkronizasyonu (Bookmarklet)
-* FPL mobil uygulamasında veya Safari'de kadro değiştirdiğinizde, şifreye veya e-postaya gerek kalmadan Safari Yer İmleri'nden tek tıkla `data/synced_team.json` dosyasını GitHub'a aktarır ve çözücüyü anında tetikler.
+### 4. 🖥️ Masaüstü Chrome Kadro Eşitleme
+* Masaüstü PySide6 arayüzünde FPL sekmesinden yerel senkronizasyon sunucusu (`local_sync_server.py`) üzerinden kadro aktarımı yapılabilir.
 
 ### 5. 🤖 GitHub Actions & Telegram Bulut Otomasyonu
-* Telegram Botu (`/analiz`, `/maclar`, `/kaptan`, `/optimal` vb.) veya manuel tetikleme (*workflow dispatch*) ile isteğe bağlı bulut çözücü ve anlık analiz desteği.
+* Telegram Botu (`/analiz`, `/maclar`, `/kaptan`, `/optimal` vb.) veya manuel tetikleme ile isteğe bağlı bulut çözücü ve anlık analiz desteği.
 * Çözülen güncel stratejileri `data/fpl_analysis.json` olarak yayınlar ve Telegram üzerinden zengin rapor olarak iletir.
 
 ---
@@ -68,8 +68,6 @@ graph TD
     
     G -->|JSON API & WebKit Cards| H[iPhone iOS Kestirmeler]
     G -->|Masaüstü Qt Arayüzü| I[PySide6 Desktop UI]
-    
-    J[Safari Bookmarklet] -->|Tek Tık Kadro Eşitleme| G
 ```
 
 ---
@@ -108,20 +106,13 @@ graph TD
 
 ## 📱 iPhone / iOS Kestirmeler Entegrasyonu
 
-### 1. Canlı Analiz Kestirmesi Kurulumu
+### Canlı Analiz Kestirmesi Kurulumu
 1. iPhone'unuzda **Kestirmeler (Shortcuts)** uygulamasını açın.
 2. **URL İçeriğini Al:** `https://api.github.com/repos/Kraiser61/FPL-Helper/contents/data/fpl_analysis.json`
    * *Üstbilgiler:* `Accept: application/vnd.github.v3.raw`, `User-Agent: iOS`
 3. **JSON'dan Değeri Al:** `cards.transfer` *(veya `cards.lineup`, `cards.golden_path`)*
 4. **Adı Ayarla:** `kart.html`
 5. **Göz At (Quick Look):** `kart.html`
-
-### 2. Safari Tek Tık Senkronizasyon Yer İmi (Bookmarklet)
-Safari'de `fantasy.premierleague.com` sayfasındayken tek tıkla kadronuzu GitHub'a aktarmak için Yer İmleri adresine ekleyin:
-
-```javascript
-javascript:(async function(){var ghToken="GITHUB_TOKEN";var repo="Kraiser61/FPL-Helper";var mgrId=3842372;try{var bearerToken="";for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);var v=localStorage.getItem(k);if(v&&v.indexOf("eyJ")!==-1){try{var p=JSON.parse(v);bearerToken=p.access_token||p.token||bearerToken;}catch(e){if(v.indexOf("eyJ")===0)bearerToken=v;}}}for(var i=0;i<sessionStorage.length;i++){var k=sessionStorage.key(i);var v=sessionStorage.getItem(k);if(v&&v.indexOf("eyJ")!==-1){try{var p=JSON.parse(v);bearerToken=p.access_token||p.token||bearerToken;}catch(e){if(v.indexOf("eyJ")===0)bearerToken=v;}}}var fplHeaders=new Headers();if(bearerToken)fplHeaders.set("authorization","Bearer "+bearerToken);var r=await fetch("/api/my-team/"+mgrId+"/",{headers:fplHeaders});if(!r.ok){alert("⚠️ FPL Oturumu Doğrulanamadı: "+r.status+" (Lütfen FPL sayfasını yenileyin)");return;}var teamData=await r.json();var payload={manager_id:mgrId,team_data:teamData,synced_at:new Date().toISOString()};var contentStr=JSON.stringify(payload,null,2);var b64=btoa(unescape(encodeURIComponent(contentStr)));var ghGetHeaders=new Headers();ghGetHeaders.set("authorization","Bearer "+ghToken);ghGetHeaders.set("accept","application/vnd.github+json");var getR=await fetch("https://api.github.com/repos/"+repo+"/contents/data/synced_team.json",{headers:ghGetHeaders});var sha="";if(getR.ok){var getJ=await getR.json();sha=getJ.sha;}var putBody={message:"sync: Update team data from mobile Safari",content:b64};if(sha)putBody.sha=sha;var ghPutHeaders=new Headers();ghPutHeaders.set("authorization","Bearer "+ghToken);ghPutHeaders.set("content-type","application/json");ghPutHeaders.set("accept","application/vnd.github+json");var putR=await fetch("https://api.github.com/repos/"+repo+"/contents/data/synced_team.json",{method:"PUT",headers:ghPutHeaders,body:JSON.stringify(putBody)});if(putR.ok){fetch("https://api.github.com/repos/"+repo+"/actions/workflows/fpl_solver.yml/dispatches",{method:"POST",headers:ghPutHeaders,body:JSON.stringify({ref:"main"})});alert("✅ Kadronuz GitHub'a eşitlendi ve analiz motoru başlatıldı!");}else{alert("❌ GitHub Yükleme Hatası: "+putR.status);}}catch(e){alert("Hata: "+e);}})();
-```
 
 ---
 
