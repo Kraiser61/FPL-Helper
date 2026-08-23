@@ -556,6 +556,41 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         send_telegram_report(format_telegram_help_report())
         return {}
 
+    # 1.1 FT / TRANSFER HAKKI AYARLAMA (/ft, /ft 2, /ft 3, ft 1, /hak 2 vb.)
+    if cmd_lower.startswith("/ft") or cmd_lower.startswith("ft ") or cmd_lower == "ft" or cmd_lower.startswith("/hak") or cmd_lower.startswith("hak ") or cmd_lower == "hak":
+        from ingestion.local_sync_server import load_synced_team_from_disk, save_synced_team_to_disk
+        synced = load_synced_team_from_disk(chat_id=chat_id)
+        if not synced or "team_data" not in synced:
+            synced = {"manager_id": manager_id, "team_data": {"picks": [], "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}}}
+        
+        import re
+        m_num = re.search(r'\b([0-5])\b', raw_team_data)
+        if m_num:
+            new_ft = int(m_num.group(1))
+            if "transfers" not in synced["team_data"]:
+                synced["team_data"]["transfers"] = {"bank": 0, "limit": new_ft, "made": 0}
+            else:
+                synced["team_data"]["transfers"]["limit"] = new_ft
+            save_synced_team_to_disk(synced, chat_id=chat_id)
+            
+            ft_resp = (
+                f"✅ <b>Serbest Transfer Hakkınız Güncellendi!</b>\n\n"
+                f"🎯 <b>Tanımlanan Hak:</b> <b>{new_ft} FT</b> (Serbest Transfer)\n\n"
+                f"<i>Çözücü motoru artık bu hak sınırına göre optimizasyon yapacaktır. Güncel öneriler için <b>/analiz</b> yazabilirsiniz.</i>"
+            )
+            send_telegram_report(ft_resp)
+            return {"ft_updated": new_ft}
+        else:
+            current_ft = synced.get("team_data", {}).get("transfers", {}).get("limit", 1)
+            ft_info = (
+                f"ℹ️ <b>Kayıtlı Serbest Transfer Hakkınız:</b> <b>{current_ft} FT</b>\n\n"
+                f"Hakkınızı değiştirmek için:\n"
+                f"👉 <b>/ft [sayı]</b> (Örnek: <b>/ft 2</b> veya <b>/ft 3</b>)\n\n"
+                f"<i>FPL kuralları gereği 1 ile 5 arasında serbest transfer biriktirebilirsiniz.</i>"
+            )
+            send_telegram_report(ft_info)
+            return {"current_ft": current_ft}
+
     # 2. DREAM TEAM / OPTIMAL WILDCARD SOLVER
     if matches_any(cmd_lower, ["/optimal", "/ruyatimi", "/ruya", "/rüya", "optimal", "rüya takım", "ruya takim", "wildcard", "ideal kadro", "dream team"]):
         optimal_msg = solve_optimal_squad(horizon_gws=5)
@@ -1367,6 +1402,7 @@ def format_telegram_help_report() -> str:
     lines = [
         "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n",
         "🔹 <b>/analiz</b> ➔ Kayıtlı kadronuzun haftalık tam strateji analizi (Kaptan, İdeal 11, Transfer, Çip, Sakatlıklar).",
+        "🔹 <b>/ft [sayı]</b> ➔ Serbest transfer hakkınızı günceller (Örn: <code>/ft 2</code> veya <code>/ft 3</code>).",
         "🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve başlama saatleri (TSİ).",
         "🔹 <b>/optimal</b> (veya <b>/ruyatimi</b>) ➔ £100m bütçe ile 590 oyuncu arasından çözülen en ideal 15 kişilik kadro.",
         "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.",
@@ -1374,6 +1410,7 @@ def format_telegram_help_report() -> str:
         "🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan ve zorlaşan takımlar.",
         "🔹 <b>/fiyat</b> ➔ Önümüzdeki 5 gün içinde beklenen yüksek ve orta ihtimalli fiyat değişim radarı.",
         "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadrodan tek bir oyuncuyu değiştirir (Örn: <code>/transfer Welbeck yerine Isak</code>).",
+        "🔹 <b>/kadrom</b> ➔ Kayıtlı 15 kişilik kadronuzu listeler.",
         "🔹 <b>/kadro [15 Oyuncu]</b> ➔ Tüm 15 kişilik kadronuzu sıfırdan kaydeder.",
         "🔹 <b>/yardim</b> ➔ Bu komut listesini ekrana getirir."
     ]

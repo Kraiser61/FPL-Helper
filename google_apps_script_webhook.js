@@ -77,6 +77,8 @@ function handleTelegramWebhook(e) {
       cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard" ||
       textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal") || textLower.includes("kadromu rüya") ||
       textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine") ||
+      textLower.startsWith("/ft") || textLower.startsWith("ft ") || cleanCmd === "ft" ||
+      textLower.startsWith("/hak") || textLower.startsWith("hak ") || cleanCmd === "hak" ||
       textLower.startsWith("/kadro") ||
       cleanCmd === "analiz" || cleanCmd === "kadrom" || cleanCmd === "taktik"
     ) {
@@ -84,6 +86,8 @@ function handleTelegramWebhook(e) {
         sendTelegramMessage(chatId, wm.optimal || "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (50-65 sn).</i>");
       } else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) {
         sendTelegramMessage(chatId, wm.transfer || "🔄 <b>Transfer isteğiniz işleniyor...</b>");
+      } else if (textLower.startsWith("/ft") || textLower.startsWith("ft") || textLower.startsWith("/hak") || textLower.startsWith("hak")) {
+        sendTelegramMessage(chatId, wm.ft || "⚙️ <b>Serbest transfer hakkınız güncelleniyor...</b>");
       } else if (textLower.startsWith("/kadro")) {
         sendTelegramMessage(chatId, wm.kadro || "📋 <b>15 kişilik kadronuz kaydediliyor...</b>");
       } else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) {
