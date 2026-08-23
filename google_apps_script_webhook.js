@@ -74,28 +74,49 @@ function handleTelegramWebhook(e) {
     const wm = (config && config.wait_messages) ? config.wait_messages : {};
 
     // 1. AĞIR MOTOR & ÇÖZÜCÜ KOMUTLARI (GitHub Actions Tetikler + Anında Geri Bildirim)
-    if (
-      cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard" ||
-      textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal") || textLower.includes("kadromu rüya") ||
-      textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine") ||
-      textLower.startsWith("/ft") || textLower.startsWith("ft ") || cleanCmd === "ft" ||
-      textLower.startsWith("/hak") || textLower.startsWith("hak ") || cleanCmd === "hak" ||
-      textLower.startsWith("/kadro") ||
-      cleanCmd === "analiz" || cleanCmd === "kadrom" || cleanCmd === "taktik"
-    ) {
-      if (cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard") {
-        sendTelegramMessage(chatId, wm.optimal || "✨ <b>Rüya Takım hesaplanıyor...</b>\n<i>En ideal 15 kişilik kadro hesaplanıyor (50-65 sn).</i>");
-      } else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) {
-        sendTelegramMessage(chatId, wm.transfer || "🔄 <b>Transfer isteğiniz işleniyor...</b>");
-      } else if (textLower.startsWith("/ft") || textLower.startsWith("ft") || textLower.startsWith("/hak") || textLower.startsWith("hak")) {
-        sendTelegramMessage(chatId, wm.ft || "⚙️ <b>Serbest transfer hakkınız güncelleniyor...</b>");
-      } else if (textLower.startsWith("/kadro")) {
-        sendTelegramMessage(chatId, wm.kadro || "📋 <b>15 kişilik kadronuz kaydediliyor...</b>");
-      } else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) {
-        sendTelegramMessage(chatId, wm.adopt_dream_team || "📋 <b>Kadro güncelleme başlatıldı...</b>");
-      } else {
-        sendTelegramMessage(chatId, wm.analiz || "🧠 <b>Strateji analizi başlatıldı...</b>\n<i>Haftalık kadro ve transfer analizi hazırlanıyor (75-85 sn).</i>");
+    let isActionCommand = false;
+    let actionWaitKey = "analiz";
+
+    // Dinamik Desen Eşleme (bot_config.json üzerinden canlı güncellenir)
+    if (config && Array.isArray(config.github_dispatch_patterns)) {
+      for (let i = 0; i < config.github_dispatch_patterns.length; i++) {
+        try {
+          const reg = new RegExp(config.github_dispatch_patterns[i], "i");
+          if (reg.test(text) || reg.test(cleanCmd)) {
+            isActionCommand = true;
+            if (/optimal|ruya|rüya|wildcard/i.test(text)) actionWaitKey = "optimal";
+            else if (/transfer|yerine/i.test(text)) actionWaitKey = "transfer";
+            else if (/ft|hak/i.test(text)) actionWaitKey = "ft";
+            else if (/kadro/i.test(text)) actionWaitKey = "kadro";
+            break;
+          }
+        } catch (err) {}
       }
+    }
+
+    // Güvenlik Yedeği: Statik Eşleme
+    if (!isActionCommand) {
+      if (
+        cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard" ||
+        textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal") || textLower.includes("kadromu rüya") ||
+        textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine") ||
+        textLower.startsWith("/ft") || textLower.startsWith("ft") || cleanCmd === "ft" ||
+        textLower.startsWith("/hak") || textLower.startsWith("hak") || cleanCmd === "hak" ||
+        textLower.startsWith("/kadro") || textLower.startsWith("kadro") ||
+        cleanCmd === "analiz" || cleanCmd === "kadrom" || cleanCmd === "taktik"
+      ) {
+        isActionCommand = true;
+        if (cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard") actionWaitKey = "optimal";
+        else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) actionWaitKey = "transfer";
+        else if (textLower.startsWith("/ft") || textLower.startsWith("ft") || textLower.startsWith("/hak") || textLower.startsWith("hak")) actionWaitKey = "ft";
+        else if (textLower.startsWith("/kadro")) actionWaitKey = "kadro";
+        else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) actionWaitKey = "adopt_dream_team";
+      }
+    }
+
+    if (isActionCommand) {
+      const waitMsg = wm[actionWaitKey] || wm.analiz || "🧠 <b>Strateji analizi başlatıldı...</b>";
+      sendTelegramMessage(chatId, waitMsg);
       triggerGitHubActions(text, chatId);
       return HtmlService.createHtmlOutput("OK");
     }
