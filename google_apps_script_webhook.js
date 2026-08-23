@@ -1,8 +1,8 @@
 // ============================================================================
-// 🦁 FPL HELPER - GOOGLE APPS SCRIPT TELEGRAM BOT WEBHOOK ROUTER
+// 🦁 FPL HELPER - GOOGLE APPS SCRIPT TELEGRAM BOT WEBHOOK ROUTER (DYNAMIC CONFIG)
 // ============================================================================
-// Bu kodu script.google.com üzerindeki projenize yapıştırıp "Yeni Dağıtım (New Deployment)"
-// olarak Web App şeklinde yayınlayabilirsiniz.
+// Bu kod GitHub üzerinden dinamik yapılandırma (data/bot_config.json) çeker.
+// Bir kez deploy edildikten sonra mesajlar ve süreler GitHub'dan otomatik güncellenir.
 
 const BOT_TOKEN = "8315284284:AAF4HjtfP1kW5rNUPRe5n1J1KBg4PsT83Jg";
 const GITHUB_REPO = "Kraiser61/FPL-Helper";
@@ -22,6 +22,39 @@ const TEAM_FULL_NAMES = {
   16: "Man Utd", 17: "Newcastle", 18: "Nott'm Forest", 19: "Tottenham", 20: "Sunderland"
 };
 
+function fetchBotConfig() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get("bot_config_json");
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {}
+  }
+  try {
+    const url = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/data/bot_config.json?t=${new Date().getTime()}`;
+    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (res.getResponseCode() === 200) {
+      const cfgText = res.getContentText();
+      cache.put("bot_config_json", cfgText, 60); // 1 dakika önbellek
+      return JSON.parse(cfgText);
+    }
+  } catch (e) {
+    Logger.log("fetchBotConfig error: " + e);
+  }
+  // Güvenli varsayılan fallback
+  return {
+    wait_messages: {
+      optimal: "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (50-65 sn).</i>",
+      analiz: "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (75-85 sn).</i>",
+      transfer: "🔄 <b>Transfer isteğiniz işleniyor...</b>",
+      kadro: "📋 <b>15 kişilik kadronuz kaydediliyor...</b>",
+      adopt_dream_team: "📋 <b>Kadro güncelleme başlatıldı...</b>"
+    },
+    help_text: "",
+    unrecognized_command: "🤖 <b>Komut anlaşılamadı.</b> Mevcut komutlar için <b>/yardim</b> yazabilirsiniz."
+  };
+}
+
 function doPost(e) {
   return handleTelegramWebhook(e);
 }
@@ -36,24 +69,27 @@ function handleTelegramWebhook(e) {
     const textLower = text.toLowerCase();
     const cleanCmd = textLower.replace(/^\//, "").trim();
 
+    const config = fetchBotConfig();
+    const wm = (config && config.wait_messages) ? config.wait_messages : {};
+
     // 1. AĞIR MOTOR & ÇÖZÜCÜ KOMUTLARI (GitHub Actions Tetikler + Anında Geri Bildirim)
     if (
-      cleanCmd === "analiz" || cleanCmd === "kadrom" || cleanCmd === "taktik" ||
       cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard" ||
       textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal") || textLower.includes("kadromu rüya") ||
       textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine") ||
-      textLower.startsWith("/kadro")
+      textLower.startsWith("/kadro") ||
+      cleanCmd === "analiz" || cleanCmd === "kadrom" || cleanCmd === "taktik"
     ) {
       if (cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard") {
-        sendTelegramMessage(chatId, "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (50-65 sn).</i>");
+        sendTelegramMessage(chatId, wm.optimal || "✨ <b>Rüya Takım (Optimal 15) hesaplanıyor...</b>\n<i>590 oyuncu arasından £100m bütçeyle en yüksek xP'li 15 çözülüyor (50-65 sn).</i>");
       } else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) {
-        sendTelegramMessage(chatId, "🔄 <b>Transfer isteğiniz işleniyor...</b>");
+        sendTelegramMessage(chatId, wm.transfer || "🔄 <b>Transfer isteğiniz işleniyor...</b>");
       } else if (textLower.startsWith("/kadro")) {
-        sendTelegramMessage(chatId, "📋 <b>15 kişilik kadronuz kaydediliyor...</b>");
+        sendTelegramMessage(chatId, wm.kadro || "📋 <b>15 kişilik kadronuz kaydediliyor...</b>");
       } else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) {
-        sendTelegramMessage(chatId, "📋 <b>Kadro güncelleme başlatıldı...</b>");
+        sendTelegramMessage(chatId, wm.adopt_dream_team || "📋 <b>Kadro güncelleme başlatıldı...</b>");
       } else {
-        sendTelegramMessage(chatId, "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (75-85 sn).</i>");
+        sendTelegramMessage(chatId, wm.analiz || "🧠 <b>FPL Tam Strateji Analizi başlatıldı...</b>\n<i>Matematiksel çözücü ve FPL Review projeksiyonları hesaplanıyor (75-85 sn).</i>");
       }
       triggerGitHubActions(text, chatId);
       return HtmlService.createHtmlOutput("OK");
@@ -61,7 +97,8 @@ function handleTelegramWebhook(e) {
 
     // 2. YARDIM / KOMUT REHBERİ (Her zaman çalışır)
     if (cleanCmd === "yardim" || cleanCmd === "help" || cleanCmd === "yardım" || cleanCmd === "komutlar") {
-      sendTelegramMessage(chatId, getHelpText());
+      const helpMsg = (config && config.help_text) ? config.help_text : getHelpText();
+      sendTelegramMessage(chatId, helpMsg);
       return HtmlService.createHtmlOutput("OK");
     }
 
@@ -94,7 +131,7 @@ function handleTelegramWebhook(e) {
 
       // 2 saatlik tazelik kuralı kontrolü
       if (!isAnalysisFresh(data, 2)) {
-        sendTelegramMessage(chatId, getStaleDataMessage(data));
+        sendTelegramMessage(chatId, getStaleDataMessage(data, config));
         return HtmlService.createHtmlOutput("OK");
       }
 
@@ -138,8 +175,9 @@ function handleTelegramWebhook(e) {
       }
     }
 
-    // 3. TANINMAYAN KOMUT (Varsayılan Rehber)
-    sendTelegramMessage(chatId, "🤖 <b>Komut anlaşılamadı.</b> Mevcut komutlar için <b>/yardim</b> yazabilirsiniz.");
+    // 5. TANINMAYAN KOMUT (Varsayılan Rehber)
+    const unrecMsg = (config && config.unrecognized_command) ? config.unrecognized_command : "🤖 <b>Komut anlaşılamadı.</b> Mevcut komutlar için <b>/yardim</b> yazabilirsiniz.";
+    sendTelegramMessage(chatId, unrecMsg);
 
   } catch (err) {
     Logger.log("Hata: " + err);
@@ -209,17 +247,7 @@ function triggerGitHubActions(teamDataText, chatId) {
   return res;
 }
 
-// Test fonksiyonu: GitHub bağlantısını doğrudan doğrulamak için bunu Apps Script'ten çalıştırabilirsiniz.
-function testGitHubDispatch() {
-  const res = triggerGitHubActions("/analiz");
-  if (res) {
-    Logger.log("Test HTTP Response Code: " + res.getResponseCode());
-    Logger.log("Test Response Body: " + res.getContentText());
-  }
-}
-
 function fetchAnalysisJson(chatId) {
-  // Single User Mode: Always fetch primary data/fpl_analysis.json
   try {
     const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/data/fpl_analysis.json?t=${new Date().getTime()}`;
     const res = UrlFetchApp.fetch(rawUrl, { muteHttpExceptions: true });
@@ -250,10 +278,13 @@ function isAnalysisFresh(data, maxHours) {
   return diffHours <= maxHours;
 }
 
-function getStaleDataMessage(data) {
+function getStaleDataMessage(data, config) {
   var timeText = "2 saatten önce";
   if (data && data.meta && data.meta.generated_at) {
     timeText = data.meta.generated_at;
+  }
+  if (config && config.stale_warning_template) {
+    return config.stale_warning_template.replace("{time}", timeText);
   }
   return "⚠️ <b>Analiz Verileri Güncel Değil:</b>\n" +
          "Kayıtlı son analiz <b>" + timeText + "</b> tarihinde üretilmiş (2 saatlik geçerlilik süresi doldu).\n\n" +
@@ -545,7 +576,6 @@ function fetchLiveFixturesReport() {
     }
     let fixtures = JSON.parse(fixRes.getContentText());
 
-    // Eğer o haftanın tüm maçları bittiyse ve sonraki hafta varsa bir sonraki haftanın fikstürünü getir
     if (currentEvent && gw === currentEvent.id && Array.isArray(fixtures) && fixtures.length > 0 && fixtures.every(isFixtureFinished) && nextEvent) {
       gw = nextEvent.id;
       const nextFixRes = UrlFetchApp.fetch(`https://fantasy.premierleague.com/api/fixtures/?event=${gw}`, { muteHttpExceptions: true });
