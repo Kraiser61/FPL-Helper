@@ -22,6 +22,8 @@ const TEAM_FULL_NAMES = {
 
 let cachedConfig = null;
 let cachedConfigExpiry = 0;
+let cachedBootstrap = null;
+let cachedBootstrapExpiry = 0;
 
 async function fetchBotConfig(githubRepo) {
   const now = Date.now();
@@ -52,6 +54,27 @@ async function fetchBotConfig(githubRepo) {
     help_text: "",
     unrecognized_command: "🤖 <b>Komut anlaşılamadı.</b> Mevcut komutlar için <b>/yardim</b> yazabilirsiniz."
   };
+}
+
+async function fetchBootstrapStatic() {
+  const now = Date.now();
+  if (cachedBootstrap && now < cachedBootstrapExpiry) {
+    return cachedBootstrap;
+  }
+  try {
+    const res = await fetch("https://fantasy.premierleague.com/api/bootstrap-static/", {
+      headers: { "User-Agent": "FPL-Telegram-Bot" }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      cachedBootstrap = data;
+      cachedBootstrapExpiry = now + 300000; // 5 dakika önbellek
+      return data;
+    }
+  } catch (e) {
+    console.error("fetchBootstrapStatic error:", e);
+  }
+  return null;
 }
 
 async function sendTelegramMessage(botToken, chatId, text) {
@@ -161,9 +184,10 @@ function getHelpText() {
   return [
     "📖 <b>FPL AI BOT KOMUT REHBERİ</b>\n",
     "🔹 <b>/analiz</b> ➔ Tam strateji ve 11 raporu (Kaptan, Transfer, Çip, Diziliş).",
+    "🔹 <b>/kadrom</b> ➔ Kayıtlı 15 kişilik kadronuzu mevki mevki, anlık değer ve takımlarıyla listeler.",
+    "🔹 <b>/ft [0-5]</b> ➔ Serbest transfer (FT) hakkınızı günceller / görüntüler.",
     "🔹 <b>/maclar</b> (veya <b>/fikstur</b>) ➔ O haftanın tüm Premier League maç takvimi, gün ve saatleri (TSİ).",
     "🔹 <b>/optimal</b> ➔ £100m bütçe ile en ideal 15 kişilik Rüya Takım.",
-    "🔹 <b>/ft [0-5]</b> ➔ Serbest transfer (FT) hakkınızı belirler / görüntüler.",
     "🔹 <b>/kaptan</b> ➔ O haftanın en iyi 2 kaptan tercihi ve patlama indeksi.",
     "🔹 <b>/sakatlar</b> ➔ Kadronuzdaki şüpheli/sakat oyuncuların sağlık raporu.",
     "🔹 <b>/salincak</b> ➔ Önümüzdeki 5 hafta fikstürü en çok kolaylaşan takımlar.",
@@ -171,6 +195,83 @@ function getHelpText() {
     "🔹 <b>/transfer [Çıkan] yerine [Giren]</b> ➔ Kadroda oyuncu değiştirir.",
     "🔹 <b>/yardim</b> ➔ Bu komut listesini getirir."
   ].join("\n");
+}
+
+async function fetchSquadReport(githubRepo) {
+  try {
+    const rawUrl = `https://raw.githubusercontent.com/${githubRepo}/main/data/synced_team.json?t=${Date.now()}`;
+    const syncRes = await fetch(rawUrl, { headers: { "User-Agent": "Cloudflare-Worker-Telegram-Bot" } });
+    if (!syncRes.ok) {
+      return "⚠️ Kayıtlı bir kadro bulunamadı. Lütfen önce <b>/kadro [15 oyuncu]</b> veya <b>/analiz</b> komutunu çalıştırın.";
+    }
+    const synced = await syncRes.json();
+    const picks = (synced && synced.team_data && Array.isArray(synced.team_data.picks)) ? synced.team_data.picks : [];
+    if (picks.length === 0) {
+      return "⚠️ Kayıtlı kadronuzda oyuncu bulunamadı.";
+    }
+
+    const bootstrap = await fetchBootstrapStatic();
+    const elements = (bootstrap && Array.isArray(bootstrap.elements)) ? bootstrap.elements : [];
+    const elMap = {};
+    for (const el of elements) {
+      elMap[el.id] = el;
+    }
+
+    const gks = [];
+    const defs = [];
+    const mids = [];
+    const fwds = [];
+    let totalCost = 0;
+
+    for (const p of picks) {
+      const el = elMap[p.element];
+      if (!el) continue;
+
+      const pName = el.web_name || el.first_name + " " + el.second_name;
+      const tCode = TEAM_NAMES[el.team] || `TAK${el.team}`;
+      const price = el.now_cost ? (el.now_cost / 10.0) : 0;
+      totalCost += price;
+
+      const priceStr = `£${price.toFixed(1)}m`;
+      const capTag = p.is_captain ? " 👑<b>(C)</b>" : (p.is_vice_captain ? " 🥈<b>(VC)</b>" : "");
+      const line = `• <b>${pName}</b> (${tCode}) ➔ <b>${priceStr}</b>${capTag}`;
+
+      if (el.element_type === 1) gks.push(line);
+      else if (el.element_type === 2) defs.push(line);
+      else if (el.element_type === 3) mids.push(line);
+      else if (el.element_type === 4) fwds.push(line);
+    }
+
+    const bank = (synced.team_data && synced.team_data.transfers && typeof synced.team_data.transfers.bank === "number")
+      ? (synced.team_data.transfers.bank / 10.0).toFixed(1)
+      : "0.0";
+    const ftCount = (synced.team_data && synced.team_data.transfers && typeof synced.team_data.transfers.limit === "number")
+      ? synced.team_data.transfers.limit
+      : 1;
+
+    const lines = [
+      "📋 <b>MEVCUT 15 KİŞİLİK KADRONUZ</b>\n",
+      "🧤 <b>Kaleciler (GK):</b>",
+      ...(gks.length ? gks : ["• <i>Veri yok</i>"]),
+      "",
+      "🛡️ <b>Defanslar (DEF):</b>",
+      ...(defs.length ? defs : ["• <i>Veri yok</i>"]),
+      "",
+      "⚙️ <b>Orta Sahalar (MID):</b>",
+      ...(mids.length ? mids : ["• <i>Veri yok</i>"]),
+      "",
+      "⚡ <b>Forvetler (FWD):</b>",
+      ...(fwds.length ? fwds : ["• <i>Veri yok</i>"]),
+      "",
+      `💰 <b>Kadro Değeri:</b> £${totalCost.toFixed(1)}m | <b>Banka:</b> £${bank}m`,
+      `🎟️ <b>Serbest Transfer:</b> ${ftCount} FT`
+    ];
+
+    return lines.join("\n");
+  } catch (err) {
+    console.error("fetchSquadReport error:", err);
+    return `❌ Kadro çekilirken hata oluştu: ${err.message}`;
+  }
 }
 
 function formatCaptainReport(payload) {
@@ -346,13 +447,10 @@ function isFixtureFinished(f) {
 
 async function fetchLiveFixturesReport() {
   try {
-    const bootstrapRes = await fetch("https://fantasy.premierleague.com/api/bootstrap-static/", {
-      headers: { "User-Agent": "FPL-Telegram-Bot" }
-    });
-    if (!bootstrapRes.ok) {
+    const bootstrap = await fetchBootstrapStatic();
+    if (!bootstrap) {
       return "⚠️ FPL API'ye erişilemedi. Lütfen birazdan tekrar deneyin.";
     }
-    const bootstrap = await bootstrapRes.json();
     const events = bootstrap.events || [];
     const teams = bootstrap.teams || [];
     const teamFullNames = {};
@@ -474,7 +572,26 @@ async function handleTelegramWebhook(request, env, ctx) {
     const config = await fetchBotConfig(githubRepo);
     const wm = (config && config.wait_messages) ? config.wait_messages : {};
 
-    // 1. AĞIR MOTOR & ÇÖZÜCÜ KOMUTLARI (GitHub Actions Tetikler + Anında Geri Bildirim)
+    // 1. KADRO LİSTELEME KOMUTLARI (⚡ Anında Cloudflare üzerinden yanıt verir)
+    const squadListCmds = ["kadrom", "takim", "takım", "15", "oyuncular", "kadromuz", "takımım", "takimim", "kadromu göster", "kadromu goster", "kadro listesi", "mevcut kadro", "mevcut kadrom"];
+    if (squadListCmds.includes(cleanCmd) || squadListCmds.includes(textLower) || cleanCmd === "kadro") {
+      // Eğer /kadro yazılmış ama yanında 15 oyuncu verilmemişse kadroyu listele
+      if (cleanCmd === "kadro" || textLower === "kadro" || textLower === "/kadro") {
+        ctx.waitUntil((async () => {
+          const rep = await fetchSquadReport(githubRepo);
+          await sendTelegramMessage(botToken, chatId, rep);
+        })());
+        return new Response("OK", { status: 200 });
+      } else if (squadListCmds.includes(cleanCmd) || squadListCmds.includes(textLower)) {
+        ctx.waitUntil((async () => {
+          const rep = await fetchSquadReport(githubRepo);
+          await sendTelegramMessage(botToken, chatId, rep);
+        })());
+        return new Response("OK", { status: 200 });
+      }
+    }
+
+    // 2. AĞIR MOTOR & ÇÖZÜCÜ KOMUTLARI (GitHub Actions Tetikler + Anında Geri Bildirim)
     let isActionCommand = false;
     let actionWaitKey = "analiz";
 
@@ -503,14 +620,14 @@ async function handleTelegramWebhook(request, env, ctx) {
         textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine") ||
         textLower.startsWith("/ft") || textLower.startsWith("ft") || cleanCmd === "ft" ||
         textLower.startsWith("/hak") || textLower.startsWith("hak") || cleanCmd === "hak" ||
-        textLower.startsWith("/kadro") || textLower.startsWith("kadro") ||
-        cleanCmd === "analiz" || cleanCmd === "kadrom" || cleanCmd === "taktik"
+        (textLower.startsWith("/kadro ") || textLower.startsWith("kadro ")) ||
+        cleanCmd === "analiz" || cleanCmd === "taktik"
       ) {
         isActionCommand = true;
         if (cleanCmd === "optimal" || cleanCmd === "ruyatimi" || cleanCmd === "rüya takım" || cleanCmd === "ruya takim" || cleanCmd === "wildcard") actionWaitKey = "optimal";
         else if (textLower.startsWith("/transfer") || textLower.startsWith("transfer") || textLower.includes("yerine")) actionWaitKey = "transfer";
         else if (textLower.startsWith("/ft") || textLower.startsWith("ft") || textLower.startsWith("/hak") || textLower.startsWith("hak")) actionWaitKey = "ft";
-        else if (textLower.startsWith("/kadro")) actionWaitKey = "kadro";
+        else if (textLower.startsWith("/kadro ") || textLower.startsWith("kadro ")) actionWaitKey = "kadro";
         else if (textLower.includes("rüya takım ile değiştir") || textLower.includes("kadroyu optimal")) actionWaitKey = "adopt_dream_team";
       }
     }
@@ -524,14 +641,14 @@ async function handleTelegramWebhook(request, env, ctx) {
       return new Response("OK", { status: 200 });
     }
 
-    // 2. YARDIM / KOMUT REHBERİ
+    // 3. YARDIM / KOMUT REHBERİ
     if (cleanCmd === "yardim" || cleanCmd === "help" || cleanCmd === "yardım" || cleanCmd === "komutlar") {
       const helpMsg = (config && config.help_text) ? config.help_text : getHelpText();
       ctx.waitUntil(sendTelegramMessage(botToken, chatId, helpMsg));
       return new Response("OK", { status: 200 });
     }
 
-    // 3. CANLI FİKSTÜR VE MAÇ PROGRAMI
+    // 4. CANLI FİKSTÜR VE MAÇ PROGRAMI
     const matchCommands = [
       "maclar", "maçlar", "fikstur", "fikstür", "program", "maç programı", "mac programi", "haftanın maçları", "haftanin maclari", "/haftalikmaclar"
     ];
@@ -543,13 +660,12 @@ async function handleTelegramWebhook(request, env, ctx) {
       return new Response("OK", { status: 200 });
     }
 
-    // 4. STRATEJİ VE ÖNBELLEK RAPORLARI
+    // 5. STRATEJİ VE ÖNBELLEK RAPORLARI
     const instantCommands = [
       "kaptan", "captain", "c kim", "kime verelim",
       "sakatlar", "revir", "saglik", "sağlık", "injury",
       "salincak", "salıncak", "swings", "kolayfikstur", "kolayfikstür", "kolay maçlar", "kolay fikstür",
-      "fiyat", "price", "zam", "düşüş", "fiyatlar",
-      "kadrom", "takim", "15", "oyuncular"
+      "fiyat", "price", "zam", "düşüş", "fiyatlar"
     ];
 
     const isInstantCmd = instantCommands.includes(cleanCmd) || instantCommands.includes(textLower);
@@ -606,7 +722,7 @@ async function handleTelegramWebhook(request, env, ctx) {
       return new Response("OK", { status: 200 });
     }
 
-    // 5. TANINMAYAN KOMUT
+    // 6. TANINMAYAN KOMUT
     const unrecMsg = (config && config.unrecognized_command) ? config.unrecognized_command : "🤖 <b>Komut anlaşılamadı.</b> Mevcut komutlar için <b>/yardim</b> yazabilirsiniz.";
     ctx.waitUntil(sendTelegramMessage(botToken, chatId, unrecMsg));
     return new Response("OK", { status: 200 });

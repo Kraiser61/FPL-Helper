@@ -619,31 +619,48 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
             el_map = {e.id: e for e in bootstrap.elements}
             
             gkps, defs, mids, fwds = [], [], [], []
+            total_cost = 0.0
             for p in picks:
                 el = el_map.get(p.get("element"))
                 if not el:
                     continue
                 team_s = TEAM_NAMES.get(el.team, "")
-                price_str = f"£{el.now_cost/10.0:.1f}m"
-                cap = " ⭐ (K)" if p.get("is_captain") else (" (YK)" if p.get("is_vice_captain") else "")
-                p_text = f"<b>{el.web_name}</b> ({team_s} - {price_str}){cap}"
+                price = el.now_cost / 10.0
+                total_cost += price
+                price_str = f"£{price:.1f}m"
+                cap = " 👑<b>(C)</b>" if p.get("is_captain") else (" 🥈<b>(VC)</b>" if p.get("is_vice_captain") else "")
+                p_text = f"• <b>{el.web_name}</b> ({team_s}) ➔ <b>{price_str}</b>{cap}"
                 if el.element_type == 1: gkps.append(p_text)
                 elif el.element_type == 2: defs.append(p_text)
                 elif el.element_type == 3: mids.append(p_text)
                 elif el.element_type == 4: fwds.append(p_text)
             
-            squad_msg = (
-                f"📋 <b>KAYITLI 15 KİŞİLİK KADRONUZ</b>\n\n"
-                f"🧤 <b>Kaleciler:</b>\n• " + "\n• ".join(gkps) + "\n\n"
-                f"🛡️ <b>Defanslar:</b>\n• " + "\n• ".join(defs) + "\n\n"
-                f"⚙️ <b>Orta Sahalar:</b>\n• " + "\n• ".join(mids) + "\n\n"
-                f"⚽ <b>Forvetler:</b>\n• " + "\n• ".join(fwds) + "\n\n"
-                f"💡 <i>Transfer yapmak için: <b>/transfer Çıkan yerine Giren</b></i>"
-            )
+            transfers = synced["team_data"].get("transfers", {})
+            bank = transfers.get("bank", 0) / 10.0 if isinstance(transfers.get("bank"), (int, float)) else 0.0
+            ft_limit = transfers.get("limit", 1)
+
+            lines = [
+                "📋 <b>MEVCUT 15 KİŞİLİK KADRONUZ</b>\n",
+                "🧤 <b>Kaleciler (GK):</b>",
+                *(gkps if gkps else ["• <i>Veri yok</i>"]),
+                "",
+                "🛡️ <b>Defanslar (DEF):</b>",
+                *(defs if defs else ["• <i>Veri yok</i>"]),
+                "",
+                "⚙️ <b>Orta Sahalar (MID):</b>",
+                *(mids if mids else ["• <i>Veri yok</i>"]),
+                "",
+                "⚡ <b>Forvetler (FWD):</b>",
+                *(fwds if fwds else ["• <i>Veri yok</i>"]),
+                "",
+                f"💰 <b>Kadro Değeri:</b> £{total_cost:.1f}m | <b>Banka:</b> £{bank:.1f}m",
+                f"🎟️ <b>Serbest Transfer:</b> {ft_limit} FT"
+            ]
+            squad_msg = "\n".join(lines)
             send_telegram_report(squad_msg)
             return {"squad_report": squad_msg}
         else:
-            send_telegram_report("⚠️ Kayıtlı bir kadro bulunamadı. Lütfen <b>/kadro [15 oyuncu]</b> yazarak kadronuzu kaydedin.")
+            send_telegram_report("⚠️ Kayıtlı bir kadro bulunamadı. Lütfen önce <b>/kadro [15 oyuncu]</b> veya <b>/analiz</b> komutunu çalıştırın.")
             return {}
 
     # 4. ADOPT DREAM TEAM AS ACTIVE SQUAD
