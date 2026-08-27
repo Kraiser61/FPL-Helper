@@ -690,9 +690,8 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
     # 4. ADOPT DREAM TEAM AS ACTIVE SQUAD
     if matches_any(cmd_lower, ["rüya takım ile değiştir", "ruya takim ile degistir", "kadromu rüya", "kadromu ruya", "kadroyu rüya", "kadroyu ruya", "kadroyu optimal", "kadromu optimal", "rüya kadroyu yaptım", "ruya kadroyu yaptim", "rüya takımı kurdum", "ruya takimi kurdum", "kadrom rüya takım", "kadrom ruya takim"]):
         from core.solver.service import FPLSolverService
-        from core.solver.projection_generator import generate_builtin_projections
         from ingestion.local_sync_server import save_synced_team_to_disk
-        proj_path = generate_builtin_projections(horizon_gws=5, force_refresh=True)
+        proj_path = get_hybrid_projection_path(horizon_gws=5)
         solver = FPLSolverService()
         results = solver.run_optimization(
             team_data={"picks": [], "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}},
@@ -1486,11 +1485,39 @@ def format_telegram_help_report() -> str:
     ]
     return "\n".join(lines)
 
+def get_hybrid_projection_path(horizon_gws: int = 5) -> Path:
+    from core.solver.paths import DATA_DIR
+    fplreview_path = BASE_DIR / "data" / "fplreview.csv"
+    if fplreview_path.exists() and fplreview_path.stat().st_size > 10000:
+        return fplreview_path
+
+    appdata_path = DATA_DIR / "fplreview.csv"
+    if appdata_path.exists() and appdata_path.stat().st_size > 10000:
+        return appdata_path
+
+    from ingestion.fplreview_scraper import generate_hybrid_fplreview_csv
+    try:
+        loop = None
+        try:
+            loop = asyncio.get_event_loop()
+        except Exception:
+            pass
+        if loop and loop.is_running():
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                return pool.submit(asyncio.run, generate_hybrid_fplreview_csv(horizon_gws=horizon_gws)).result()
+        else:
+            return asyncio.run(generate_hybrid_fplreview_csv(horizon_gws=horizon_gws))
+    except Exception as e:
+        app_logger.warning(f"Hybrid FPL Review üretilirken hata: {e}")
+
+    from core.solver.projection_generator import generate_builtin_projections
+    return generate_builtin_projections(horizon_gws=horizon_gws)
+
 def solve_optimal_squad(horizon_gws: int = 5) -> str:
     from core.solver.service import FPLSolverService
-    from core.solver.projection_generator import generate_builtin_projections
     try:
-        proj_path = generate_builtin_projections(horizon_gws=horizon_gws, force_refresh=True)
+        proj_path = get_hybrid_projection_path(horizon_gws=horizon_gws)
         solver = FPLSolverService()
         results = solver.run_optimization(
             team_data={"picks": [], "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}},

@@ -300,11 +300,15 @@ async def generate_hybrid_fplreview_csv(
                     shutil.copy2(target_file, output_path)
                 return output_path
 
-    # Step 1: Generate built-in full baseline projections (600+ players, full horizon)
-    from core.solver.projection_generator import generate_builtin_projections
-    builtin_csv = generate_builtin_projections(horizon_gws=horizon_gws, force_refresh=force_refresh)
-    df_baseline = pd.read_csv(builtin_csv)
-    logger.info(f"Yerleşik matematiksel temel oluşturuldu ({len(df_baseline)} oyuncu).")
+    # Step 1: Load FPL Form as the comprehensive baseline (600+ players, all gameweeks)
+    fplform_path = BASE_DIR / "data" / "fplform.csv"
+    if not fplform_path.exists() or fplform_path.stat().st_size < 10000:
+        from ingestion.fplform_client import generate_fplform_csv
+        logger.info("FPL Form temel veri seti indiriliyor (fplform.csv)...")
+        await generate_fplform_csv(output_path=fplform_path, horizon_gws=horizon_gws)
+
+    df_baseline = pd.read_csv(fplform_path)
+    logger.info(f"FPL Form temel veri seti yüklendi ({len(df_baseline)} oyuncu).")
 
     # Step 2: Scrape live FPL Review players
     scraper = FPLReviewLiveScraper()
@@ -320,24 +324,47 @@ async def generate_hybrid_fplreview_csv(
         )
 
         if not df_scraped.empty:
-            # Step 3: Merge FPL Review projections on top of baseline
-            logger.info("FPL Review canlı verileri yerleşik modelle birleştiriliyor...")
-            scraped_lookup = {row["id"]: row for _, row in df_scraped.iterrows()}
+            # Step 3: FPL Review verileri değiştirilmeden doğru kabul edilir, FPL Form tabanına doğrudan aktarılır
+            logger.info("FPL Review doğrulanmış verileri FPL Form tabanına aktarılıyor...")
+            scraped_lookup = {int(row["id"]): row for _, row in df_scraped.iterrows()}
 
+            id_col = "ID" if "ID" in df_baseline.columns else "id"
             for idx, row in df_baseline.iterrows():
-                p_id = row.get("id") or row.get("ID")
+                try:
+                    p_id = int(row[id_col])
+                except (ValueError, TypeError):
+                    continue
                 if p_id in scraped_lookup:
                     rev_data = scraped_lookup[p_id]
-                    # Override GW1-GW4 with scraped FPL Review values
+                    # FPL Review'deki tüm haftalar (GW1-GW4) doğrudan FPL Form'un üzerine yazılır
                     for gw in range(1, 5):
                         pts_col = f"{gw}_Pts"
                         mins_col = f"{gw}_xMins"
-                        if pts_col in rev_data and rev_data[pts_col] > 0:
-                            df_baseline.at[idx, pts_col] = rev_data[pts_col]
-                        if mins_col in rev_data and rev_data[mins_col] > 0:
-                            df_baseline.at[idx, mins_col] = rev_data[mins_col]
+                        if pts_col in rev_data and pd.notna(rev_data[pts_col]) and float(rev_data[pts_col]) > 0:
+                            df_baseline.at[idx, pts_col] = float(rev_data[pts_col])
+                        if mins_col in rev_data and pd.notna(rev_data[mins_col]) and float(rev_data[mins_col]) > 0:
+                            df_baseline.at[idx, mins_col] = int(round(float(rev_data[mins_col])))
 
-            logger.success(f"Hibrit FPL Review CSV başarıyla harmanlandı ({len(df_scraped)} FPL Review oyuncusu güncellendi).")
+            # FPL Review'de olup FPL Form'da eksik kalan oyuncu varsa listeye ekle
+            existing_ids = set(df_baseline[id_col].astype(int))
+            missing_records = []
+            for p_id, rev_data in scraped_lookup.items():
+                if p_id not in existing_ids:
+                    rec = {
+                        id_col: p_id,
+                        "Name": rev_data.get("name"),
+                        "Pos": rev_data.get("pos"),
+                        "Value": rev_data.get("buy_price", 5.0),
+                        "Team": rev_data.get("team"),
+                    }
+                    for gw in range(1, 5):
+                        rec[f"{gw}_Pts"] = float(rev_data.get(f"{gw}_Pts", 0.0))
+                        rec[f"{gw}_xMins"] = int(round(float(rev_data.get(f"{gw}_xMins", 0.0))))
+                    missing_records.append(rec)
+            if missing_records:
+                df_baseline = pd.concat([df_baseline, pd.DataFrame(missing_records)], ignore_index=True)
+
+            logger.success(f"Hibrit FPL Review + FPL Form veri seti hazırlandı ({len(df_scraped)} elit oyuncu FPL Review'den doğrudan alındı, kalan {len(df_baseline) - len(df_scraped)} oyuncu FPL Form'dan tamamlandı).")
 
     # Save to target CSV and local repo data dir
     df_baseline.to_csv(output_path, index=False, encoding="utf-8")

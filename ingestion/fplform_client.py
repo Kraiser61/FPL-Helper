@@ -35,12 +35,10 @@ class FPLFormClient:
     ) -> Path:
         if output_path is None:
             DATA_DIR.mkdir(parents=True, exist_ok=True)
-            output_path = DATA_DIR / 'fplreview.csv'
+            output_path = DATA_DIR / 'fplform.csv'
 
-        repo_csv_path = BASE_DIR / 'data' / 'fplreview.csv'
         repo_fplform_path = BASE_DIR / 'data' / 'fplform.csv'
         appdata_fplform_path = DATA_DIR / 'fplform.csv'
-        appdata_projections_path = DATA_DIR / 'projections.csv'
 
         # 1. Fetch live official FPL elements and teams
         bootstrap = await self.fpl_client.get_bootstrap_static()
@@ -124,10 +122,8 @@ class FPLFormClient:
 
         # 4. Save standardized CSV files
         df_clean.to_csv(output_path, index=False, encoding='utf-8')
-        df_clean.to_csv(repo_csv_path, index=False, encoding='utf-8')
         df_clean.to_csv(repo_fplform_path, index=False, encoding='utf-8')
         df_clean.to_csv(appdata_fplform_path, index=False, encoding='utf-8')
-        df_clean.to_csv(appdata_projections_path, index=False, encoding='utf-8')
 
         # 5. Write metadata
         meta = {
