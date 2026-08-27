@@ -155,8 +155,8 @@ function handleTelegramWebhook(e) {
         return HtmlService.createHtmlOutput("OK");
       }
 
-      // 2 saatlik tazelik kuralı kontrolü
-      if (!isAnalysisFresh(data, 2)) {
+      // 1 saatlik tazelik kuralı kontrolü
+      if (!isAnalysisFresh(data, 1)) {
         sendTelegramMessage(chatId, getStaleDataMessage(data, config));
         return HtmlService.createHtmlOutput("OK");
       }
@@ -288,7 +288,7 @@ function fetchAnalysisJson(chatId) {
 
 function isAnalysisFresh(data, maxHours) {
   if (!data || !data.meta) return false;
-  maxHours = maxHours || 2;
+  maxHours = maxHours || 1;
   var genTime = null;
   if (data.meta.generated_at_epoch) {
     genTime = data.meta.generated_at_epoch * 1000;
@@ -305,7 +305,7 @@ function isAnalysisFresh(data, maxHours) {
 }
 
 function getStaleDataMessage(data, config) {
-  var timeText = "2 saatten önce";
+  var timeText = "1 saatten önce";
   if (data && data.meta && data.meta.generated_at) {
     timeText = data.meta.generated_at;
   }
@@ -313,7 +313,7 @@ function getStaleDataMessage(data, config) {
     return config.stale_warning_template.replace("{time}", timeText);
   }
   return "⚠️ <b>Analiz Verileri Güncel Değil:</b>\n" +
-         "Kayıtlı son analiz <b>" + timeText + "</b> tarihinde üretilmiş (2 saatlik geçerlilik süresi doldu).\n\n" +
+         "Kayıtlı son analiz <b>" + timeText + "</b> tarihinde üretilmiş (1 saatlik geçerlilik süresi doldu).\n\n" +
          "En güncel transfer trendleri, sakatlıklar ve maç verileriyle yanıt alabilmek için lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n" +
          "<i>💡 <b>/analiz</b> ve <b>/optimal</b> komutları her zaman motoru canlı tetikleyerek verileri sıfırdan hesaplar.</i>";
 }

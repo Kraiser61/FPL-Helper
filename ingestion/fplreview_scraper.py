@@ -246,14 +246,14 @@ async def generate_hybrid_fplreview_csv(
     output_path: Optional[Path] = None, 
     horizon_gws: int = 8,
     force_refresh: bool = False,
-    max_age_hours: float = 6.0
+    max_age_hours: float = 1.0
 ) -> Path:
     """
     Builds the ultimate hybrid projection CSV:
-    1. Checks if existing fplreview.csv is fresher than max_age_hours (default 6h).
+    1. Checks if existing fplreview.csv is fresher than max_age_hours (default 1h).
        If fresh and not force_refresh, skips expensive Playwright browser startup (~20s saved).
-    2. Otherwise, scrapes live FPL Review projections.
-    3. Fills all remaining 550+ players and GW5-GW8 projections using our built-in Poisson/Elo engine.
+    2. Otherwise, loads FPL Form baseline (600+ players) and scrapes live FPL Review projections.
+    3. Overwrites matched players with FPL Review data without modification.
     4. Exports a complete, unified `data/fplreview.csv`.
     """
     if output_path is None:

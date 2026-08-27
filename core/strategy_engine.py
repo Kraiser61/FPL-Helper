@@ -125,10 +125,10 @@ class StrategyEngine:
             from core.solver.paths import DATA_DIR
             target_csv = DATA_DIR / "fplreview.csv"
             import time
-            is_stale = not target_csv.exists() or (time.time() - target_csv.stat().st_mtime > 21600)
+            is_stale = not target_csv.exists() or (time.time() - target_csv.stat().st_mtime > 3600)
             if is_stale:
                 app_logger.info("FPL Review canlı projeksiyonları güncelleniyor...")
-                await generate_hybrid_fplreview_csv(horizon_gws=horizon_gws)
+                await generate_hybrid_fplreview_csv(horizon_gws=horizon_gws, max_age_hours=1.0)
         except Exception as e:
             app_logger.warning(f"FPL Review canlı veri kontrolü atlandı: {e}")
 

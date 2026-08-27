@@ -149,7 +149,7 @@ async function fetchAnalysisJson(githubRepo) {
   return null;
 }
 
-function isAnalysisFresh(data, maxHours = 2) {
+function isAnalysisFresh(data, maxHours = 1) {
   if (!data || !data.meta) return false;
   let genTime = null;
   if (data.meta.generated_at_epoch) {
@@ -167,7 +167,7 @@ function isAnalysisFresh(data, maxHours = 2) {
 }
 
 function getStaleDataMessage(data, config) {
-  let timeText = "2 saatten önce";
+  let timeText = "1 saatten önce";
   if (data && data.meta && data.meta.generated_at) {
     timeText = data.meta.generated_at;
   }
@@ -175,7 +175,7 @@ function getStaleDataMessage(data, config) {
     return config.stale_warning_template.replace("{time}", timeText);
   }
   return "⚠️ <b>Analiz Verileri Güncel Değil:</b>\n" +
-         "Kayıtlı son analiz <b>" + timeText + "</b> tarihinde üretilmiş (2 saatlik geçerlilik süresi doldu).\n\n" +
+         "Kayıtlı son analiz <b>" + timeText + "</b> tarihinde üretilmiş (1 saatlik geçerlilik süresi doldu).\n\n" +
          "En güncel transfer trendleri, sakatlıklar ve maç verileriyle yanıt alabilmek için lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n" +
          "<i>💡 <b>/analiz</b> ve <b>/optimal</b> komutları her zaman motoru canlı tetikleyerek verileri sıfırdan hesaplar.</i>";
 }
@@ -703,7 +703,7 @@ async function handleTelegramWebhook(request, env, ctx) {
           return;
         }
 
-        if (!isAnalysisFresh(data, 2)) {
+        if (!isAnalysisFresh(data, 1)) {
           await sendTelegramMessage(botToken, chatId, getStaleDataMessage(data, config));
           return;
         }

@@ -517,7 +517,7 @@ def format_html_health_radar(bundle: DecisionBundle) -> str:
 
     return HTML_HEADER + "".join(body) + HTML_FOOTER
 
-def is_analysis_fresh(cached_data: dict, max_hours: float = 2.0) -> bool:
+def is_analysis_fresh(cached_data: dict, max_hours: float = 1.0) -> bool:
     if not cached_data or not cached_data.get("meta"):
         return False
     meta = cached_data["meta"]
@@ -541,10 +541,10 @@ def is_analysis_fresh(cached_data: dict, max_hours: float = 2.0) -> bool:
     return False
 
 def get_stale_warning_message(cached_data: dict) -> str:
-    gen_str = cached_data.get("meta", {}).get("generated_at", "2 saatten önce") if cached_data else "2 saatten önce"
+    gen_str = cached_data.get("meta", {}).get("generated_at", "1 saatten önce") if cached_data else "1 saatten önce"
     return (
         f"⚠️ <b>Analiz Verileri Güncel Değil:</b>\n"
-        f"Kayıtlı son analiz <b>{gen_str}</b> tarihinde oluşturulmuş (2 saatlik geçerlilik süresi doldu).\n\n"
+        f"Kayıtlı son analiz <b>{gen_str}</b> tarihinde oluşturulmuş (1 saatlik geçerlilik süresi doldu).\n\n"
         f"En güncel transfer trendleri, sakatlıklar ve maç verileriyle yanıt alabilmek için lütfen önce <b>/analiz</b> komutunu çalıştırın.\n\n"
         f"<i>💡 <b>/analiz</b> ve <b>/optimal</b> komutları her zaman motoru canlı tetikleyerek verileri sıfırdan hesaplar.</i>"
     )
@@ -719,7 +719,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
-            if not is_analysis_fresh(cached_data, 2.0):
+            if not is_analysis_fresh(cached_data, 1.0):
                 send_telegram_report(get_stale_warning_message(cached_data))
                 return {}
             send_telegram_report(format_telegram_captain_report(cached_data))
@@ -732,7 +732,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
-            if not is_analysis_fresh(cached_data, 2.0):
+            if not is_analysis_fresh(cached_data, 1.0):
                 send_telegram_report(get_stale_warning_message(cached_data))
                 return {}
             send_telegram_report(format_telegram_health_report(cached_data))
@@ -814,7 +814,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
-            if not is_analysis_fresh(cached_data, 2.0):
+            if not is_analysis_fresh(cached_data, 1.0):
                 send_telegram_report(get_stale_warning_message(cached_data))
                 return {}
             send_telegram_report(format_telegram_fixture_report(cached_data))
@@ -827,7 +827,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         if cached_path.exists():
             with open(cached_path, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
-            if not is_analysis_fresh(cached_data, 2.0):
+            if not is_analysis_fresh(cached_data, 1.0):
                 send_telegram_report(get_stale_warning_message(cached_data))
                 return {}
             if cached_data.get("reports", {}).get("fiyat"):
@@ -1485,15 +1485,19 @@ def format_telegram_help_report() -> str:
     ]
     return "\n".join(lines)
 
-def get_hybrid_projection_path(horizon_gws: int = 5) -> Path:
+def get_hybrid_projection_path(horizon_gws: int = 5, max_age_hours: float = 1.0) -> Path:
     from core.solver.paths import DATA_DIR
     fplreview_path = BASE_DIR / "data" / "fplreview.csv"
     if fplreview_path.exists() and fplreview_path.stat().st_size > 10000:
-        return fplreview_path
+        file_age_hours = (time.time() - fplreview_path.stat().st_mtime) / 3600.0
+        if file_age_hours < max_age_hours:
+            return fplreview_path
 
     appdata_path = DATA_DIR / "fplreview.csv"
     if appdata_path.exists() and appdata_path.stat().st_size > 10000:
-        return appdata_path
+        file_age_hours = (time.time() - appdata_path.stat().st_mtime) / 3600.0
+        if file_age_hours < max_age_hours:
+            return appdata_path
 
     from ingestion.fplreview_scraper import generate_hybrid_fplreview_csv
     try:
@@ -1505,12 +1509,16 @@ def get_hybrid_projection_path(horizon_gws: int = 5) -> Path:
         if loop and loop.is_running():
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, generate_hybrid_fplreview_csv(horizon_gws=horizon_gws)).result()
+                return pool.submit(asyncio.run, generate_hybrid_fplreview_csv(horizon_gws=horizon_gws, max_age_hours=max_age_hours)).result()
         else:
-            return asyncio.run(generate_hybrid_fplreview_csv(horizon_gws=horizon_gws))
+            return asyncio.run(generate_hybrid_fplreview_csv(horizon_gws=horizon_gws, max_age_hours=max_age_hours))
     except Exception as e:
         app_logger.warning(f"Hybrid FPL Review üretilirken hata: {e}")
 
+    if fplreview_path.exists() and fplreview_path.stat().st_size > 10000:
+        return fplreview_path
+    if appdata_path.exists() and appdata_path.stat().st_size > 10000:
+        return appdata_path
     from core.solver.projection_generator import generate_builtin_projections
     return generate_builtin_projections(horizon_gws=horizon_gws)
 
