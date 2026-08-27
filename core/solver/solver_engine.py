@@ -9,6 +9,7 @@ import pandas as pd
 from loguru import logger
 
 from core.solver.data_parser import read_data
+from core.solver.paths import DATA_DIR
 from core.solver.utils import cached_request, get_random_id
 
 BINARY_THRESHOLD = 0.5
@@ -206,11 +207,12 @@ def prep_data(my_data: Dict[str, Any], options: Dict[str, Any]) -> Dict[str, Any
         + safe_players_due_ev
     )
 
-    for bt in options.get("booked_transfers", []):
-        if bt.get("transfer_in"):
-            safe_players.append(int(bt["transfer_in"]))
-        if bt.get("transfer_out"):
-            safe_players.append(int(bt["transfer_out"]))
+    optimal_mode = options.get("optimal_squad", False) or (options.get("preseason", False) and len(initial_squad) == 0)
+    if optimal_mode:
+        # Guarantee cheap goalkeepers (<= 4.4m) and cheap defenders (< 4.5m) are protected from pruning
+        safe_cheap_gks = merged_data[(merged_data["Pos"] == "G") & (merged_data["now_cost"] <= 44)]["ID"].tolist()
+        safe_cheap_defs = merged_data[(merged_data["Pos"] == "D") & (merged_data["now_cost"] < 45)]["ID"].tolist()
+        safe_players = safe_players + safe_cheap_gks + safe_cheap_defs
 
     # Filter player pool for high performance
     xmin_lb = options.get("xmin_lb", 300)
@@ -600,6 +602,87 @@ def solve_multi_period_fpl(data: Dict[str, Any], options: Dict[str, Any]) -> Lis
             for w in gws
         ])
 
+    # Optimal Squad Structural Constraints (Goalkeepers & Defenders)
+    optimal_squad = options.get("optimal_squad", False) or (options.get("preseason", False) and len(initial_squad) == 0)
+    bench_gk_bonus = 0
+    if optimal_squad:
+        # 1. Kaleci Seçimleri:
+        # - 1 kaleci yedek mantığıyla seçilecek. Bütçesi <= 4.4m olacak, oynama ihtimali en yüksek seçilecek.
+        # - Diğer kaleci kesin oynayan kaleciler arasından <= 5.0m olmalı kesinlikle.
+        gkps = [p for p in players if player_type[p] == 1]
+
+        # Candidate bench keepers (cost <= 4.4m, healthy/available)
+        bench_gks = [
+            p for p in gkps
+            if buy_price[p] <= 4.4 and merged_data.loc[p, "status"] == "a"
+            and (pd.isna(merged_data.loc[p].get("chance_of_playing_next_round")) or merged_data.loc[p].get("chance_of_playing_next_round", 100) >= 50)
+        ]
+        if not bench_gks:
+            bench_gks = [p for p in gkps if buy_price[p] <= 4.4]
+
+        # Load high-accuracy xMins/xP from fplreview for backup keepers if available
+        fplrev_gk_map = {}
+        for fplrev_candidate in [Path("data/fplreview.csv"), DATA_DIR / "fplreview.csv"]:
+            if fplrev_candidate.exists():
+                try:
+                    fdf = pd.read_csv(fplrev_candidate)
+                    fdf_gk = fdf[(fdf["Pos"].isin(["G", "GKP"])) & (fdf["Value"] <= 4.4)]
+                    pts_col = [c for c in fdf_gk.columns if "_Pts" in c]
+                    mins_col = [c for c in fdf_gk.columns if "_xMins" in c]
+                    for _, frow in fdf_gk.iterrows():
+                        fid = int(frow["ID"])
+                        ev_val = float(frow[pts_col].sum()) if pts_col else 0.0
+                        mins_val = float(frow[mins_col].sum()) if mins_col else 0.0
+                        fplrev_gk_map[fid] = (ev_val * 10.0) + mins_val
+                    break
+                except Exception:
+                    pass
+
+        def get_bench_gk_score(p):
+            r = merged_data.loc[p]
+            score = fplrev_gk_map.get(p, 0.0)
+            tot_ev = float(r.get("total_ev") or 0.0)
+            tot_min = float(r.get("total_min") or 0.0)
+            starts = float(r.get("starts") or 0.0)
+            mins = float(r.get("minutes") or 0.0)
+            return score + (tot_ev * 10.0) + (tot_min * 2.0) + (starts * 5.0) + (mins / 90.0)
+
+        # Candidate starting keepers (cost <= 5.0m, status 'a', definite starter xMins >= 60 in gws)
+        starter_gks = [
+            p for p in gkps
+            if buy_price[p] <= 5.0 and merged_data.loc[p, "status"] == "a"
+            and (pd.isna(merged_data.loc[p].get("chance_of_playing_next_round")) or merged_data.loc[p].get("chance_of_playing_next_round", 100) >= 75)
+            and any(xmins_by_week[w].get(p, 0) >= 60 for w in gws)
+        ]
+        if not starter_gks:
+            starter_gks = [p for p in gkps if buy_price[p] <= 5.0]
+
+        # In lineup (starting XI), exactly 1 goalkeeper from starter_gks
+        m.addConstrs([sum_(lineup[p, w] for p in starter_gks) == 1 for w in gws])
+        # On bench (order 0), exactly 1 goalkeeper from bench_gks
+        m.addConstrs([sum_(bench[p, w, 0] for p in bench_gks) == 1 for w in gws])
+
+        # Bench GK playing chance tie-breaker
+        bench_gk_bonus = sum_(get_bench_gk_score(p) * 1e-4 * bench[p, w, 0] for p in bench_gks for w in gws)
+
+        # 2. Defans Seçimleri:
+        # - defansta 1 oyuncu kesinlikle 4.4m altında olmalı (< 4.4m)
+        # - en fazla 1 oyuncu 5.5m'den fazla olabilir (> 5.5m)
+        # - 5 defanstan en az 2 oyuncu 4.5m'den aşağı fiyatlı olmalı (< 4.5m)
+        defs = [p for p in players if player_type[p] == 2]
+
+        defs_lt_44 = [p for p in defs if buy_price[p] < 4.4]
+        if defs_lt_44:
+            m.addConstrs([sum_(squad[p, w] for p in defs_lt_44) >= 1 for w in gws])
+
+        defs_gt_55 = [p for p in defs if buy_price[p] > 5.5]
+        if defs_gt_55:
+            m.addConstrs([sum_(squad[p, w] for p in defs_gt_55) <= 1 for w in gws])
+
+        defs_lt_45 = [p for p in defs if buy_price[p] < 4.5]
+        if defs_lt_45:
+            m.addConstrs([sum_(squad[p, w] for p in defs_lt_45) >= 2 for w in gws])
+
     for bt in booked_transfers:
         tr_gw = bt.get("gw")
         if tr_gw and tr_gw in gws:
@@ -658,9 +741,9 @@ def solve_multi_period_fpl(data: Dict[str, Any], options: Dict[str, Any]) -> Lis
     }
 
     if objective == "regular":
-        objective_expr = sum_(gw_total[w] for w in gws)
+        objective_expr = sum_(gw_total[w] for w in gws) + bench_gk_bonus
     else:
-        objective_expr = sum_(gw_total[w] * pow(decay_base, w - next_gw) for w in gws)
+        objective_expr = sum_(gw_total[w] * pow(decay_base, w - next_gw) for w in gws) + bench_gk_bonus
 
     m.setObjective(objective_expr, sense=highspy.ObjSense.kMaximize)
 

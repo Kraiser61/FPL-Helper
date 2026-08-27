@@ -488,14 +488,17 @@ async function fetchLiveFixturesReport() {
       }
     }
 
-    return formatMatchesReportFromRaw(fixtures, gw, teamFullNames);
+    const activeEvent = events.find(e => e.id === gw);
+    const deadlineTime = activeEvent ? activeEvent.deadline_time : null;
+
+    return formatMatchesReportFromRaw(fixtures, gw, teamFullNames, deadlineTime);
   } catch (e) {
     console.error("fetchLiveFixturesReport error:", e);
     return `❌ Canlı fikstür çekilirken hata oluştu: ${e.message}`;
   }
 }
 
-function formatMatchesReportFromRaw(fixtures, gw, teamFullNames) {
+function formatMatchesReportFromRaw(fixtures, gw, teamFullNames, deadlineTime) {
   if (!Array.isArray(fixtures) || fixtures.length === 0) {
     return `⚠️ GW${gw} için fikstür verisi bulunamadı.`;
   }
@@ -528,7 +531,26 @@ function formatMatchesReportFromRaw(fixtures, gw, teamFullNames) {
   }
   
   let lines = [];
-  lines.push(`🦁 <b>PREMIER LEAGUE GW${gw} CANLI MAÇ PROGRAMI (TSİ)</b>\n`);
+  lines.push(`🦁 <b>PREMIER LEAGUE GW${gw} CANLI MAÇ PROGRAMI (TSİ)</b>`);
+
+  if (deadlineTime) {
+    const dlDate = new Date(deadlineTime);
+    if (!isNaN(dlDate.getTime())) {
+      const dlTr = new Date(dlDate.getTime() + (3 * 60 * 60 * 1000));
+      const dlDayName = DAYS_TR[dlTr.getUTCDay()];
+      const dlDayNum = dlTr.getUTCDate();
+      const dlMonthName = MONTHS_TR[dlTr.getUTCMonth()];
+      const dlHours = String(dlTr.getUTCHours()).padStart(2, '0');
+      const dlMinutes = String(dlTr.getUTCMinutes()).padStart(2, '0');
+      const isPast = new Date().getTime() > dlDate.getTime();
+      const statusNote = isPast ? " <i>(Süre doldu)</i>" : "";
+      lines.push(`⏰ <b>Son Değişiklik (Deadline):</b> ${dlDayNum} ${dlMonthName} ${dlDayName}, ${dlHours}:${dlMinutes}${statusNote}\n`);
+    } else {
+      lines.push("");
+    }
+  } else {
+    lines.push("");
+  }
   
   for (const [dayKey, list] of Object.entries(grouped)) {
     lines.push(`🗓️ <b>${dayKey}</b>`);

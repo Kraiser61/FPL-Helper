@@ -88,7 +88,7 @@ def is_fixture_finished(fix: dict) -> bool:
                 pass
     return False
 
-def format_telegram_matches_report(fixtures: list, gw_num: int = 1) -> str:
+def format_telegram_matches_report(fixtures: list, gw_num: int = 1, deadline_val = None) -> str:
     if not fixtures:
         return f"⚠️ GW{gw_num} için fikstür verisi bulunamadı."
 
@@ -101,8 +101,33 @@ def format_telegram_matches_report(fixtures: list, gw_num: int = 1) -> str:
         grouped[day_str].append((sort_key, time_str, f))
 
     lines = [
-        f"🦁 <b>PREMIER LEAGUE GW{gw_num} MAÇ PROGRAMI (TSİ)</b>\n"
+        f"🦁 <b>PREMIER LEAGUE GW{gw_num} MAÇ PROGRAMI (TSİ)</b>"
     ]
+    if deadline_val:
+        dl_day, dl_time, _ = format_kickoff_tr(deadline_val)
+        if dl_day != "Tarih Belirsiz":
+            is_past = False
+            try:
+                from datetime import datetime, timezone
+                if isinstance(deadline_val, str):
+                    d_obj = datetime.fromisoformat(deadline_val.replace("Z", "+00:00"))
+                elif isinstance(deadline_val, datetime):
+                    d_obj = deadline_val
+                else:
+                    d_obj = None
+                if d_obj:
+                    if d_obj.tzinfo is None:
+                        d_obj = d_obj.replace(tzinfo=timezone.utc)
+                    if datetime.now(timezone.utc) > d_obj:
+                        is_past = True
+            except Exception:
+                pass
+            status_note = " <i>(Süre doldu)</i>" if is_past else ""
+            lines.append(f"⏰ <b>Son Değişiklik (Deadline):</b> {dl_day}, {dl_time}{status_note}\n")
+        else:
+            lines.append("")
+    else:
+        lines.append("")
 
     for day_str, match_list in grouped.items():
         match_list.sort(key=lambda x: x[0])
@@ -672,7 +697,7 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
         results = solver.run_optimization(
             team_data={"picks": [], "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}},
             csv_file_path=proj_path,
-            options_override={"preseason": True, "horizon": 5}
+            options_override={"preseason": True, "horizon": 5, "optimal_squad": True}
         )
         if results:
             r = results[0]
@@ -775,7 +800,9 @@ async def generate_analysis_json(manager_id: int = DEFAULT_MANAGER_ID, horizon_g
                         "kickoff_time": fix.kickoff_time.isoformat() if fix.kickoff_time else None
                     })
 
-            rep = format_telegram_matches_report(fix_list, gw_val)
+            active_ev = next((e for e in bootstrap.events if e.id == gw_val), None)
+            deadline_val = getattr(active_ev, "deadline_time", None) if active_ev else None
+            rep = format_telegram_matches_report(fix_list, gw_val, deadline_val=deadline_val)
             send_telegram_report(rep)
             return {"matches_report": rep, "fixtures": fix_list, "fixture_gw": gw_val}
         except Exception as e:
@@ -1468,7 +1495,7 @@ def solve_optimal_squad(horizon_gws: int = 5) -> str:
         results = solver.run_optimization(
             team_data={"picks": [], "chips": [], "transfers": {"bank": 0, "limit": 1, "made": 0}},
             csv_file_path=proj_path,
-            options_override={"preseason": True, "horizon": horizon_gws}
+            options_override={"preseason": True, "horizon": horizon_gws, "optimal_squad": True}
         )
         if not results:
             return "❌ Optimal kadro çözülemedi."
@@ -1491,7 +1518,8 @@ def solve_optimal_squad(horizon_gws: int = 5) -> str:
             items = []
             for _, row in sub_df.iterrows():
                 star = "⭐ " if row.get("captain") == 1 else ""
-                items.append(f"{star}<b>{row['name']}</b> ({row['team']} - £{row['buy_price']:.1f}m)")
+                bench_tag = " (Yedek)" if row.get("bench", -1) >= 0 else ""
+                items.append(f"{star}<b>{row['name']}</b> ({row['team']} - £{row['buy_price']:.1f}m{bench_tag})")
             return ", ".join(items)
             
         lines = []
