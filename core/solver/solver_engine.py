@@ -667,7 +667,8 @@ def solve_multi_period_fpl(data: Dict[str, Any], options: Dict[str, Any]) -> Lis
 
         # 2. Defans Seçimleri:
         # - defansta 1 oyuncu kesinlikle 4.4m altında olmalı (< 4.4m)
-        # - en fazla 1 oyuncu 5.5m'den fazla olabilir (> 5.5m)
+        # - 5.5m ve üzeri en fazla 1 tane olmalı (>= 5.5m <= 1)
+        # - 5.3m ve üzeri en fazla 2 tane olmalı (>= 5.3m <= 2)
         # - 5 defanstan en az 2 oyuncu 4.5m'den aşağı fiyatlı olmalı (< 4.5m)
         defs = [p for p in players if player_type[p] == 2]
 
@@ -675,9 +676,13 @@ def solve_multi_period_fpl(data: Dict[str, Any], options: Dict[str, Any]) -> Lis
         if defs_lt_44:
             m.addConstrs([sum_(squad[p, w] for p in defs_lt_44) >= 1 for w in gws])
 
-        defs_gt_55 = [p for p in defs if buy_price[p] > 5.5]
-        if defs_gt_55:
-            m.addConstrs([sum_(squad[p, w] for p in defs_gt_55) <= 1 for w in gws])
+        defs_gte_55 = [p for p in defs if buy_price[p] >= 5.5]
+        if defs_gte_55:
+            m.addConstrs([sum_(squad[p, w] for p in defs_gte_55) <= 1 for w in gws])
+
+        defs_gte_53 = [p for p in defs if buy_price[p] >= 5.3]
+        if defs_gte_53:
+            m.addConstrs([sum_(squad[p, w] for p in defs_gte_53) <= 2 for w in gws])
 
         defs_lt_45 = [p for p in defs if buy_price[p] < 4.5]
         if defs_lt_45:
