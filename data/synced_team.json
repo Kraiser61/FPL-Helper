@@ -96,9 +96,9 @@
     "chips": [],
     "transfers": {
       "bank": 0,
-      "limit": 1,
+      "limit": 2,
       "made": 0,
-      "last_updated_gw": 2
+      "last_updated_gw": 3
     }
   }
 }
