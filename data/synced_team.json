@@ -51,7 +51,7 @@
         "is_vice_captain": false
       },
       {
-        "element": 237,
+        "element": 427,
         "position": 9,
         "is_captain": false,
         "is_vice_captain": false
@@ -63,7 +63,7 @@
         "is_vice_captain": false
       },
       {
-        "element": 379,
+        "element": 26,
         "position": 11,
         "is_captain": false,
         "is_vice_captain": false
@@ -97,7 +97,7 @@
     "transfers": {
       "bank": 0,
       "limit": 0,
-      "made": 0,
+      "made": 2,
       "last_updated_gw": 3
     }
   }
