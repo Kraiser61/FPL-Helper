@@ -1,165 +1,67 @@
-# ⚽ FPL Helper & Strategy Solver
+# ⚽ FPL Helper & Strategy Assistant
 
-<div align="center">
-
-![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.14-blue?style=for-the-badge&logo=python&logoColor=white)
-![HiGHS](https://img.shields.io/badge/Solver-HiGHS%20MIP-brightgreen?style=for-the-badge&logo=mathworks)
-![Playwright](https://img.shields.io/badge/Scraper-Playwright%20Chromium-orange?style=for-the-badge&logo=playwright&logoColor=white)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20iOS%20%7C%20Linux-lightgrey?style=for-the-badge)
-![GitHub Actions](https://img.shields.io/badge/CI%2FCD-Automated%20Solver-success?style=for-the-badge&logo=githubactions&logoColor=white)
-
-**Yapay Zeka ve Yöneylem Araştırması (MIP) Destekli Fantasy Premier League Strateji & Optimizasyon Asistanı**
-
-[Özellikler](#-temel-özellikler) • [Mimari](#-sistem-mimarisi) • [Mobil & Kestirmeler](#-iphone--ios-kestirmeler-entegrasyonu) • [Kurulum](#-kurulum--kullanım) • [Matematiksel Motor](#-matematiksel-model--çözücü)
-
-</div>
+**An intelligent Fantasy Premier League assistant that calculates the best weekly transfers, starting lineups, and chip strategies to maximize your squad's rank.**
 
 ---
 
-## 📌 Genel Bakış
+## 📌 Overview
 
-**FPL Helper**, Fantasy Premier League menajerlerinin haftalık transfer, ilk 11 dizilişi, kaptan seçimi ve uzun vadeli çip (Wildcard, Free Hit, Bench Boost, Triple Captain) stratejilerini **Karma Tamsayılı Doğrusal Programlama (Mixed-Integer Linear Programming - MIP)** algoritmalarıyla optimize eden yeni nesil bir strateji platformudur.
+Managing a Fantasy Premier League (FPL) team requires balancing player form, fixture swings, budgets, and long-term planning. **FPL Helper** takes the stress and guesswork out of manager decisions by transforming complex league statistics into clear, actionable advice.
 
-Sistem; masaüstü **PySide6 / Qt** arayüzü, bulutta otomatik çalışan **GitHub Actions** çözücü hattı ve cebinizden tek tıkla erişebileceğiniz **iPhone Kestirmeler (Shortcuts)** ekosistemiyle uçtan uca senkronize çalışır.
-
----
-
-## ✨ Temel Özellikler
-
-### 1. 🧠 HiGHS MIP Çok Dönemli Optimizasyon Motoru
-* 8 haftalık hareketli ufukta (*rolling 8-gameweek horizon*) puan beklentisini (xP) ve transfer maliyetlerini maksimize eder.
-* Bütçe, mevki kotaları, takım sınırları (maksimum 3 oyuncu), transfer cezaları (-4 hit) ve serbest transfer devirlerini (*Roll FT*) dinamik simüle eder.
-* **Golden Path:** Gelecek 8 haftanın haftalık transfer ve çip yol haritasını üretir.
-
-### 2. 🕷️ Canlı FPL Review Kazıma & Hibrit Veri Motoru (`fplreview_scraper.py`)
-* Başsız Chromium tarayıcısı (Playwright) ile `app.fplreview.com` üzerinden en güncel elit projeksiyonları ve beklenen dakikaları (xMins) otomatik kazır.
-* Resmi Premier League veritabanı ile **%100 hatasız kimlik eşleştirmesi** (`fuzzy token sort` + takım ve mevki doğrulaması) yapar.
-* Kalan tüm lig oyuncularını yerleşik **Poisson & Elo olasılık modelleriyle** tamamlayarak eksiksiz bir `data/fplreview.csv` veri seti oluşturur.
-
-### 3. 📱 iPhone iOS Kestirmeler & WebKit Arayüzü
-* iPhone 13 mini ve tüm iOS cihazlarla tam uyumlu, kenarlıksız **OLED Koyu Tema (`#070a12`)** zengin web kartları.
-* **Modüler Menü:**
-  * 🎯 **Haftalık Transfer:** Giren/çıkan oyuncu, bütçe değişimi ve stratejik gerekçeler.
-  * 📋 **İlk 11 Kadrosu & Diziliş:** O haftanın tek maçına göre en yüksek xP'li 11 ve kaptan (2x).
-  * 🛣️ **Stratejik Yol Haritası:** 8 haftalık Golden Path planı.
-  * 🃏 **Çip & Zamanlama:** Çip durumları ve kullanım tavsiyesi.
-  * 🏥 **Sağlık & Fiyat Radarı:** Sakatlık olasılıkları ve beklenen fiyat artış/düşüş alarmları.
-
-### 4. 🖥️ Masaüstü Chrome Kadro Eşitleme
-* Masaüstü PySide6 arayüzünde FPL sekmesinden yerel senkronizasyon sunucusu (`local_sync_server.py`) üzerinden kadro aktarımı yapılabilir.
-
-### 5. 🤖 GitHub Actions & Telegram Bulut Otomasyonu
-* Telegram Botu (`/analiz`, `/maclar`, `/kaptan`, `/optimal` vb.) veya manuel tetikleme ile isteğe bağlı bulut çözücü ve anlık analiz desteği.
-* Çözülen güncel stratejileri `data/fpl_analysis.json` olarak yayınlar ve Telegram üzerinden zengin rapor olarak iletir.
+Instead of spending hours debating transfer moves or captain choices, FPL Helper analyzes player performance forecasts and upcoming match difficulty across an 8-week horizon. It recommends optimal transfer plans, chooses your highest-potential starting eleven, and helps you schedule high-impact chips like Wildcard and Free Hit at the perfect moment.
 
 ---
 
-## 🏗️ Sistem Mimarisi
+## ✨ Key Highlights
 
-```mermaid
-graph TD
-    A[FPL Resmi API / my-team] -->|Kadro & Fikstür| D[StrategyEngine]
-    B[FPL Review Web Projections] -->|Playwright Canlı Kazıma| C[Hybrid CSV Builder]
-    C -->|data/fplreview.csv| D
-    D -->|MIP Denklemleri| E[HiGHS Solver Motoru]
-    E -->|Optimizasyon Çözümü| F[export_fpl_analysis.py]
-    
-    F -->|data/fpl_analysis.json| G[GitHub Repository]
-    
-    G -->|JSON API & WebKit Cards| H[iPhone iOS Kestirmeler]
-    G -->|Masaüstü Qt Arayüzü| I[PySide6 Desktop UI]
-```
+* **📈 Multi-Gameweek Strategy:** Looks up to 8 gameweeks ahead to recommend a forward-thinking transfer roadmap rather than just reacting to the previous week's points.
+* **🎯 Optimal Starting XI & Captaincy:** Automatically selects the strongest starting lineup and vice/captain picks to maximize your weekly points return.
+* **🃏 Smart Chip Timing:** Analyzes upcoming fixture swings to advise exactly when to play your Wildcard, Free Hit, Bench Boost, or Triple Captain.
+* **📱 iOS Shortcuts & Mobile Cards:** Get your personalized team advice on your iPhone or mobile device with a single tap, formatted into clean, glanceable visual cards.
+* **🖥️ Modern Desktop Interface:** An easy-to-use desktop dashboard for managers who want to browse fixtures, visualize squad rotations, and review strategy recommendations.
+* **⚡ Automated Data Updates:** Pulls the latest Premier League fixture information, team news, and projection models automatically before every deadline.
 
 ---
 
-## 📂 Proje Dizin Yapısı
+## 🚀 Getting Started
 
-```text
-├── .github/workflows/
-│   └── fpl_solver.yml          # Bulut optimizasyon ve otomatik commit workflow'u
-├── core/
-│   ├── solver/
-│   │   ├── service.py          # HiGHS Solver servis orkestratörü
-│   │   ├── data_parser.py      # CSV ve veri standardizasyon motoru
-│   │   ├── projection_generator.py # Yerleşik Elo & Poisson xP üreteci
-│   │   └── multi_period_mip.py # Çok dönemli tamsayılı programlama modeli
-│   └── strategy_engine.py      # Ana strateji ve karar demeti (DecisionBundle)
-├── ingestion/
-│   ├── fpl_client.py           # Resmi FPL REST API istemcisi
-│   ├── fplreview_scraper.py    # Playwright canlı FPL Review kazıyıcı
-│   ├── auth_manager.py         # Oturum ve kimlik doğrulama yönetimi
-│   └── local_sync_server.py    # Tarayıcı kadro senkronizasyon sunucusu
-├── ui/
-│   ├── views/                  # Masaüstü Transfer, Kadro, Fikstür ve Dashboard ekranları
-│   ├── viewmodels/             # MVVM asenkron iş parçacığı yöneticileri
-│   └── widgets/                # FDR Isı Haritası, Taktik Tahtası ve Modern Kartlar
-├── data/
-│   ├── fpl_analysis.json       # Mobil kestirme ve API için üretilen canlı veri
-│   ├── fplreview.csv           # Harmanlanmış hibrit projeksiyon veri tabanı
-│   └── synced_team.json        # Senkronize edilmiş kullanıcı kadro taslağı
-├── export_fpl_analysis.py      # Başsız (headless) JSON ve WebKit kart üretici
-├── main.py                     # Masaüstü PySide6 uygulamasını başlatan dosya
-└── requirements.txt            # Proje bağımlılıkları
-```
-
----
-
-## 📱 iPhone / iOS Kestirmeler Entegrasyonu
-
-### Canlı Analiz Kestirmesi Kurulumu
-1. iPhone'unuzda **Kestirmeler (Shortcuts)** uygulamasını açın.
-2. **URL İçeriğini Al:** `https://api.github.com/repos/Kraiser61/FPL-Helper/contents/data/fpl_analysis.json`
-   * *Üstbilgiler:* `Accept: application/vnd.github.v3.raw`, `User-Agent: iOS`
-3. **JSON'dan Değeri Al:** `cards.transfer` *(veya `cards.lineup`, `cards.golden_path`)*
-4. **Adı Ayarla:** `kart.html`
-5. **Göz At (Quick Look):** `kart.html`
-
----
-
-## 💻 Kurulum & Kullanım
-
-### Gereksinimler
-* Python 3.11 veya üstü
+### Prerequisites
+* [Python](https://www.python.org/) 3.11 or higher
 * Git
 
-### Yerel Kurulum
+### Local Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Kraiser61/FPL-Helper.git
+   cd FPL-Helper
+   ```
+
+2. Install required Python packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Launch the desktop application:
+   ```bash
+   python main.py
+   ```
+
+### Headless Analysis
+If you only want to generate the latest strategy report without opening the visual interface:
 ```bash
-# 1. Depoyu klonlayın
-git clone https://github.com/Kraiser61/FPL-Helper.git
-cd FPL-Helper
-
-# 2. Bağımlılıkları yükleyin
-pip install -r requirements.txt
-
-# 3. Playwright tarayıcı motorunu kurun
-python -m playwright install chromium
-
-# 4. Masaüstü arayüzünü başlatın
-python main.py
-```
-
-### Başsız (Headless) Çözücüyü Çalıştırma
-```bash
-# Analiz JSON'ı ve Hibrit FPL Review CSV'sini doğrudan üretin
 python export_fpl_analysis.py
 ```
 
 ---
 
-## 📊 Matematiksel Model & Çözücü
+## 📱 Mobile Integration (iOS Shortcuts)
 
-Strateji motoru aşağıdaki optimizasyon problemini çözer:
-
-$$\max \sum_{t=1}^{T} \left( \sum_{i \in \text{Start}} \text{xP}_{i,t} + \text{xP}_{\text{Cap},t} + \sum_{j \in \text{Bench}} w_j \cdot \text{xP}_{j,t} - \text{HitCost} \cdot \text{Penalties}_t \right)$$
-
-**Temel Kısıtlar:**
-* $\sum_{i} \text{Cost}_i \le \text{Budget}_t$ *(£100.0m Bütçe Sınırı)*
-* $\sum_{i \in \text{Team}_k} x_{i,t} \le 3 \quad \forall k$ *(Aynı takımdan en fazla 3 oyuncu)*
-* Kadro Formasyonu: 2 GKP, 5 DEF, 5 MID, 3 FWD (İlk 11'de min. 1 GKP, min. 3 DEF, min. 1 FWD)
-* Serbest Transfer devir mantığı ($\text{FT}_{t+1} = \min(5, \text{FT}_t - \text{Transfers}_t + 1)$)
+You can view your weekly team recommendations directly on your phone using the Apple Shortcuts app:
+1. Open the **Shortcuts** app on your iPhone.
+2. Add an action to fetch your generated analysis data (`data/fpl_analysis.json`).
+3. Display the interactive cards for instant transfer and lineup suggestions on matchday.
 
 ---
 
-## 📄 Lisans & Telif
-Bu proje kişisel strateji ve analiz amacıyla geliştirilmiştir. Tüm hakları saklıdır.
-
+## 📄 License
+This project is built for personal FPL strategy analysis.
