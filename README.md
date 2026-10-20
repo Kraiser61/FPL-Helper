@@ -64,4 +64,4 @@ You can view your weekly team recommendations directly on your phone using the A
 ---
 
 ## 📄 License
-This project is built for personal FPL strategy analysis.
+This project is open source and available under the [MIT License](LICENSE).
